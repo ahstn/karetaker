@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/ahstn/karetaker/pkg/kubernetes"
 	"github.com/thatisuday/commando"
 )
 
@@ -47,6 +48,22 @@ func main() {
 	commando.
 		SetExecutableName("karetaker").
 		SetVersion("1.0.0")
+
+	commando.
+		Register("batch").
+		SetDescription("Execute a batch run using pre-existing clean-up logic").
+		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
+			clientset, err := kubernetes.Config("")
+			if err != nil {
+				fmt.Println(err.Error())
+				return
+			}
+
+			deployments, err := kubernetes.ListDeployments(clientset)
+			for _, deployment := range deployments {
+				fmt.Printf("deployment/%s \n", deployment)
+			}
+		})
 
 	commando.
 		Register("interactive").
