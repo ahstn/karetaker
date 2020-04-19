@@ -61,7 +61,7 @@ func main() {
 
 			deployments, err := kubernetes.ListDeployments(clientset)
 			for _, deployment := range deployments {
-				fmt.Printf("deployment/%s \n", deployment)
+				fmt.Printf("deploy/%s (Age: %s)\n", deployment.Name, deployment.Age)
 			}
 		})
 
