@@ -49,10 +49,3 @@ func TestListImages(t *testing.T) {
 		})
 	}
 }
-
-func namespace(name string) *v1.Namespace {
-	return &v1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: name},
-		Spec:       v1.NamespaceSpec{},
-	}
-}
