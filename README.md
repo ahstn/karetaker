@@ -4,17 +4,17 @@
 
 #### Todo 
 
-[ ] Authenticate with Kuberentes (Out-of-Cluster Usage)
-[ ] List Deployments older than X time
-[ ] Add Logging for batch execution (i.e. logrus) 
-[ ] Add progress bars for ANSI terminals (i.e. spinners & emojis)
-[ ] List Deployments without a desired running replica(s)
-[ ] List Deployments using 90% of resource limits
-[ ] Identify duplicate Helm releases
-[ ] Interactive Clean-Up CLI
-[ ] Read Config for Batch Clean-up
-[ ] Authenticate using Service Account (In-Cluster Usage)
-[ ] Integration Tests using KinD
+- [ ] Authenticate with Kuberentes (Out-of-Cluster Usage)
+- [ ] List Deployments older than X time
+- [ ] Add Logging for batch execution (i.e. logrus) 
+- [ ] Add progress bars for ANSI terminals (i.e. spinners & emojis)
+- [ ] List Deployments without a desired running replica(s)
+- [ ] List Deployments using 90% of resource limits
+- [ ] Identify duplicate Helm releases
+- [ ] Interactive Clean-Up CLI
+- [ ] Read Config for Batch Clean-up
+- [ ] Authenticate using Service Account (In-Cluster Usage)
+- [ ] Integration Tests using KinD
 
 
 ## Commands
