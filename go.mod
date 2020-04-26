@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.0.7
-	github.com/briandowns/spinner v1.10.0 // indirect
+	github.com/briandowns/spinner v1.10.0
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/google/go-cmp v0.4.0
 	github.com/mattn/go-colorable v0.1.6 // indirect

@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"os"
 	"text/tabwriter"
-	"time"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/ahstn/karetaker/pkg/kubernetes"
-	"github.com/briandowns/spinner"
+	"github.com/ahstn/karetaker/pkg/log"
 	"github.com/thatisuday/commando"
 )
 
@@ -93,16 +92,15 @@ func main() {
 			filter, _ := flags["filter"].GetString()
 			targetLabel := args["target"].Value
 
+			s := log.Print("Connecting to Kubernetes Cluster")
 			clientset, err := kubernetes.Config("")
 			if err != nil {
 				fmt.Println(err.Error())
 				return
 			}
+			s.Stop()
 
-			s := spinner.New(spinner.CharSets[37], 100*time.Millisecond)
-			s.Start()
-			s.Suffix = fmt.Sprintf("Fetching Deployments (namespace: %s)", namespace)
-			s.FinalMSG = "✔ Fetching Deployments Complete \n"
+			s = log.Print(fmt.Sprintf("Fetching Deployments (namespace: %s)", namespace))
 			deployments, err := kubernetes.ListDuplicateDeployments(clientset, namespace, filter, targetLabel)
 			s.Stop()
 
