@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"os"
 	"text/tabwriter"
+	"time"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/ahstn/karetaker/pkg/kubernetes"
+	"github.com/briandowns/spinner"
 	"github.com/thatisuday/commando"
 )
 
@@ -82,21 +84,27 @@ func main() {
 
 	commando.
 		Register("duplicate").
-		SetDescription("Execute a batch run using pre-existing clean-up logic").
+		SetDescription("Find similar or duplicate Kubernetes' deployments").
+		AddArgument("target", "label to target similarities and duplicates", "kubernetes.io/instance").
+		AddFlag("filter,f", "deployments label filter (i.e. app=auth)", commando.String, nil).
+		AddFlag("namespace,n", "kubernetes namespace", commando.String, "default").
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
-			namespace := "default"
-			appLabel := "app=nginx"
-			instanceLabel := "version"
+			namespace, _ := flags["namespace"].GetString()
+			filter, _ := flags["filter"].GetString()
+			targetLabel := args["target"].Value
+
 			clientset, err := kubernetes.Config("")
 			if err != nil {
 				fmt.Println(err.Error())
 				return
 			}
 
-			deployments, err := kubernetes.ListDuplicateDeployments(clientset, namespace, appLabel, instanceLabel)
-			for _, deployment := range deployments {
-				fmt.Printf("deploy/%s\n", deployment)
-			}
+			s := spinner.New(spinner.CharSets[37], 100*time.Millisecond)
+			s.Start()
+			s.Suffix = fmt.Sprintf("Fetching Deployments (namespace: %s)", namespace)
+			s.FinalMSG = "✔ Fetching Deployments Complete \n"
+			deployments, err := kubernetes.ListDuplicateDeployments(clientset, namespace, filter, targetLabel)
+			s.Stop()
 
 			w := new(tabwriter.Writer)
 			w.Init(os.Stdout, 8, 8, 0, '\t', 0)

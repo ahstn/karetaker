@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"fmt"
 	"log"
 	"regexp"
 	"time"
@@ -90,7 +89,7 @@ func ListDuplicateDeployments(clientset kubernetes.Interface,
 		log.Fatal(err)
 	}
 
-	fmt.Printf("Found Instances: %s \n", instances)
+	// fmt.Printf("Found Instances: %s \n", instances)
 
 	// Copy []instances into a map (key: name, value: similar names).
 	// For each "version" iterate through the []instances to find matches.
@@ -110,13 +109,13 @@ func ListDuplicateDeployments(clientset kubernetes.Interface,
 				matched = true
 			}
 			if n == len(instances)-1 && !matched {
-				fmt.Printf("End of list and no matches - removing %s\n", v)
+				// fmt.Printf("End of list and no matches - removing %s\n", v)
 				delete(similar, v)
 			}
 		}
 	}
 
-	fmt.Printf("Result Map: %s\n", similar)
+	// fmt.Printf("Result Map: %s\n", similar)
 
 	// NB: If we make this concurrent by taking chucks of []instances
 	// It'll still need a final last to ensure all the chucks are filtered together
