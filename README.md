@@ -1,10 +1,13 @@
 # Karetaker
 
+**WORK IN PROGRESS. Only for dev and experimental use.**
+
 #### Todo 
 
 [ ] Authenticate with Kuberentes (Out-of-Cluster Usage)
 [ ] List Deployments older than X time
-[ ] Add Logging (i.e. logrus)
+[ ] Add Logging for batch execution (i.e. logrus) 
+[ ] Add progress bars for ANSI terminals (i.e. spinners & emojis)
 [ ] List Deployments without a desired running replica(s)
 [ ] List Deployments using 90% of resource limits
 [ ] Identify duplicate Helm releases
@@ -18,6 +21,21 @@
 
 ### `karetaker duplicate`
 This commands aims to find similar or duplicate Kubernetes deployments. It's intended for finding similar Helm releases, but can be used for any deployment that has an "app name" and "instance" labels (i.e. `kubernetes.io/name` and `kubernetes.io/instance`).
+
+```
+➜ karetaker duplicate -h
+
+Usage:
+   karetaker [target] {flags}
+
+Arguments: 
+   target               label to target similarities and duplicates (default: kubernetes.io/instance)
+
+Flags: 
+   -f, --filter         deployments label filter (i.e. app=auth) 
+   -h, --help           displays usage information of the application or a command (default: false)
+   -n, --namespace      kubernetes namespace (default: default)
+```
 
 The `kubernetes.io/name` label is used to filter deployments for the target application and `kubernetes.io/instance` is used to find similar label values. Examples of the `instance` label could be the name of your release, the ticket identifier for a new application feature or the username of the engineer working on the feature.
 
