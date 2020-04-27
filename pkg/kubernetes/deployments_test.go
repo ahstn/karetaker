@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 
@@ -12,44 +13,60 @@ import (
 	fake "k8s.io/client-go/kubernetes/fake"
 )
 
-// func TestListDeploymentsOlderThan(t *testing.T) {
-// 	var tests = []struct {
-// 		duration  time.Duration
-// 		expected  []Deployment
-// 		clientset kubernetes.Interface
-// 	}{
-// 		{
-// 			expected: []string{"default", "billing"},
-// 			clientset: fake.NewSimpleClientset(&appsv1.Deployment{
-// 				ObjectMeta: metav1.ObjectMeta{
-// 					Name: "test-pod",
-// 				},
-// 			}, &v1.Namespace{
-// 				ObjectMeta: metav1.ObjectMeta{
-// 					Name: "default",
-// 				},
-// 			}, &v1.Namespace{
-// 				ObjectMeta: metav1.ObjectMeta{
-// 					Name: "billing",
-// 				},
-// 			}),
-// 		},
-// 	}
+func TestListDeploymentsOlderThan(t *testing.T) {
+	var tests = []struct {
+		duration  time.Duration
+		expected  []Deployment
+		clientset kubernetes.Interface
+	}{
+		{
+			duration: 5 * time.Hour,
+			expected: []Deployment{
+				{
+					Name: "postive-match",
+					Age:  5 * time.Hour,
+				},
+				{
+					Name: "postive-match-2",
+					Age:  28 * time.Hour,
+				},
+			},
+			clientset: fake.NewSimpleClientset(&appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "postive-match",
+					Namespace:         "default",
+					CreationTimestamp: metav1.NewTime(time.Now().Add(-5 * time.Hour)),
+				},
+			}, &appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "postive-match-2",
+					Namespace:         "default",
+					CreationTimestamp: metav1.NewTime(time.Now().Add(-28 * time.Hour)),
+				},
+			}, &appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "negative-match",
+					Namespace:         "default",
+					CreationTimestamp: metav1.Now(),
+				},
+			}),
+		},
+	}
 
-// 	for _, test := range tests {
-// 		t.Run("Test", func(t *testing.T) {
-// 			actual, err := ListNamespaces(test.clientset)
-// 			if err != nil {
-// 				t.Errorf("Unexpected error: %s", err)
-// 				return
-// 			}
-// 			if diff := cmp.Diff(actual, test.expected); diff != "" {
-// 				t.Errorf("%T differ (-got, +want): %s", test.expected, diff)
-// 				return
-// 			}
-// 		})
-// 	}
-// }
+	for _, test := range tests {
+		t.Run("Test", func(t *testing.T) {
+			actual, err := ListDeploymentsOlderThan(test.clientset, test.duration)
+			if err != nil {
+				t.Errorf("Unexpected error: %s", err)
+				return
+			}
+			if diff := cmp.Diff(actual, test.expected); diff != "" {
+				t.Errorf("%T differ (-got, +want): %s", test.expected, diff)
+				return
+			}
+		})
+	}
+}
 
 func TestListDuplicateDeployments(t *testing.T) {
 	var tests = []struct {
