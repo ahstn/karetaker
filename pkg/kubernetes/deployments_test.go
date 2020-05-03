@@ -55,7 +55,7 @@ func TestListDeploymentsOlderThan(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run("Test", func(t *testing.T) {
-			actual, err := ListDeploymentsOlderThan(test.clientset, test.duration)
+			actual, err := ListDeploymentsOlderThan(test.clientset, "default", test.duration)
 			if err != nil {
 				t.Errorf("Unexpected error: %s", err)
 				return

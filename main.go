@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"text/tabwriter"
+	"time"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/ahstn/karetaker/pkg/kubernetes"
@@ -55,14 +56,25 @@ func main() {
 	commando.
 		Register("batch").
 		SetDescription("Execute a batch run using pre-existing clean-up logic").
+		AddFlag("duration,d", "age filter (i.e. '24h')", commando.String, "48h").
+		AddFlag("namespace,n", "kubernetes namespace", commando.String, nil).
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
+			n, _ := flags["namespace"].GetString()
+			duration, _ := flags["duration"].GetString()
+
 			clientset, err := kubernetes.Config("")
 			if err != nil {
 				fmt.Println(err.Error())
 				return
 			}
 
-			deployments, err := kubernetes.ListDeployments(clientset)
+			d, err := time.ParseDuration(duration)
+			if err != nil {
+				fmt.Println(err.Error())
+				return
+			}
+
+			deployments, err := kubernetes.ListDeploymentsOlderThan(clientset, n, d)
 			for _, deployment := range deployments {
 				fmt.Printf("deploy/%s (Age: %s)\n", deployment.Name, deployment.Age)
 			}

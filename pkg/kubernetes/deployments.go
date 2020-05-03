@@ -19,8 +19,10 @@ type Deployment struct {
 }
 
 // ListDeploymentsOlderThan returns a list of the deployments older than the duration 'd'
-func ListDeploymentsOlderThan(clientset kubernetes.Interface, d time.Duration) ([]Deployment, error) {
-	list, err := clientset.AppsV1().Deployments("default").List(meta_v1.ListOptions{})
+func ListDeploymentsOlderThan(clientset kubernetes.Interface,
+	namespace string,
+	d time.Duration) ([]Deployment, error) {
+	list, err := clientset.AppsV1().Deployments(namespace).List(meta_v1.ListOptions{})
 	if err != nil {
 		return nil, errors.Wrap(err, "getting deployments")
 	}
