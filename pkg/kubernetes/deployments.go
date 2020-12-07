@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"context"
 	"log"
 	"regexp"
 	"time"
@@ -8,6 +9,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/xrash/smetrics"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -18,11 +22,14 @@ type Deployment struct {
 	Age  time.Duration
 }
 
+var (
+	// DeploymentResource is a helper schema for interacting with Kubernetes Deployments
+	DeploymentResource = schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}
+)
+
 // ListDeploymentsOlderThan returns a list of the deployments older than the duration 'd'
-func ListDeploymentsOlderThan(clientset kubernetes.Interface,
-	namespace string,
-	d time.Duration) ([]Deployment, error) {
-	list, err := clientset.AppsV1().Deployments(namespace).List(meta_v1.ListOptions{})
+func ListDeploymentsOlderThan(c dynamic.Interface, n string, d time.Duration) ([]Deployment, error) {
+	list, err := c.Resource(DeploymentResource).Namespace(n).List(context.TODO(), meta_v1.ListOptions{})
 	if err != nil {
 		return nil, errors.Wrap(err, "getting deployments")
 	}
@@ -30,11 +37,22 @@ func ListDeploymentsOlderThan(clientset kubernetes.Interface,
 	now := time.Now()
 	deployments := []Deployment{}
 	for _, deployment := range list.Items {
-		age := now.Sub(deployment.ObjectMeta.CreationTimestamp.Time)
+		t, found, err := unstructured.NestedString(deployment.Object, "metadata", "creationTimestamp")
+		if err != nil || !found {
+			return nil, err
+		}
+
+		creation, err := time.Parse(time.RFC3339, t)
+
+		age := now.Sub(creation)
 		if age > d {
+			name, found, err := unstructured.NestedString(deployment.Object, "metadata", "name")
+			if err != nil || !found {
+				return nil, err
+			}
 			deployments = append(deployments, Deployment{
-				Name: deployment.ObjectMeta.Name,
-				Age:  age.Round(time.Second),
+				Name: name,
+				Age:  age.Round(time.Minute),
 			})
 		}
 	}
@@ -52,7 +70,7 @@ func ListDuplicateDeployments(clientset kubernetes.Interface,
 		LabelSelector: appLabel,
 	}
 
-	list, err := clientset.AppsV1().Deployments(namespace).List(listopt)
+	list, err := clientset.AppsV1().Deployments(namespace).List(context.TODO(), listopt)
 	if err != nil {
 		return nil, errors.Wrap(err, "getting deployments")
 	}
