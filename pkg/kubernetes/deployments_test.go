@@ -1,69 +1,10 @@
 package kubernetes
 
 import (
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/dynamic"
-	"testing"
-	"time"
-
-	"github.com/google/go-cmp/cmp"
-
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	fake "k8s.io/client-go/dynamic/fake"
 )
 
-func newDeploymentWithTime(name string, t time.Time) *unstructured.Unstructured {
-	return &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"apiVersion": "apps/v1",
-			"kind":       "Deployment",
-			"metadata": map[string]interface{}{
-				"namespace": "default",
-				"name":      name,
-				"creationTimestamp": t.Format(time.RFC3339),
-			},
-		},
-	}
-}
-
-func TestListDeploymentsOlderThan(t *testing.T) {
-	scheme := runtime.NewScheme()
-
-	var tests = []struct {
-		duration time.Duration
-		expected []Deployment
-		client   dynamic.Interface
-	}{
-		{
-			duration: 5 * time.Hour,
-			expected: []Deployment{
-				{"eight-hours", 5 * time.Hour},
-				{"seventy-hours", 70 * time.Hour},
-			},
-			client: fake.NewSimpleDynamicClient(scheme,
-				newDeploymentWithTime("two-hours", time.Now().Add(-2 * time.Hour)),
-				newDeploymentWithTime("eight-hours", time.Now().Add(-5 * time.Hour)),
-				newDeploymentWithTime("seventy-hours", time.Now().Add(-70 * time.Hour)),
-			),
-		},
-	}
-
-	for _, test := range tests {
-		t.Run("Test", func(t *testing.T) {
-			actual, err := ListDeploymentsOlderThan(test.client, "default", test.duration)
-			if err != nil {
-				t.Errorf("Unexpected error: %s", err)
-				return
-			}
-			if diff := cmp.Diff(actual, test.expected); diff != "" {
-				t.Errorf("%T differ (-got, +want): %s", test.expected, diff)
-				return
-			}
-		})
-	}
-}
 //
 //func TestListDuplicateDeployments(t *testing.T) {
 //	var tests = []struct {

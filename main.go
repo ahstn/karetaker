@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"os"
 	"text/tabwriter"
 	"time"
@@ -54,33 +55,6 @@ func main() {
 		SetVersion("1.0.0")
 
 	commando.
-		Register("batch").
-		SetDescription("Execute a batch run using pre-existing clean-up logic").
-		AddFlag("duration,d", "age filter (i.e. '24h')", commando.String, "48h").
-		AddFlag("namespace,n", "kubernetes namespace", commando.String, nil).
-		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
-			n, _ := flags["namespace"].GetString()
-			duration, _ := flags["duration"].GetString()
-
-			clientset, err := kubernetes.Config("")
-			if err != nil {
-				fmt.Println(err.Error())
-				return
-			}
-
-			d, err := time.ParseDuration(duration)
-			if err != nil {
-				fmt.Println(err.Error())
-				return
-			}
-
-			deployments, err := kubernetes.ListDeploymentsOlderThan(clientset, n, d)
-			for _, deployment := range deployments {
-				fmt.Printf("deploy/%s (Age: %s)\n", deployment.Name, deployment.Age)
-			}
-		})
-
-	commando.
 		Register("interactive").
 		SetDescription("Interactively build your clean-up logic").
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
@@ -124,6 +98,55 @@ func main() {
 			for deployment, matches := range deployments {
 				fmt.Fprintf(w, "%s\t%v\t\n", deployment, matches)
 			}
+		})
+
+	commando.
+		Register("age").
+		SetDescription("Find resources older than a certain age").
+		AddArgument("type", "type of resource", "deployment").
+		AddFlag("age,a", "age boundary to filter on", commando.String, "48h").
+		AddFlag("namespace,n", "kubernetes namespace", commando.String, "default").
+		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
+			r := schema.GroupVersionResource{}
+			n, _ := flags["namespace"].GetString()
+			a, _ := flags["age"].GetString()
+
+			age, err := time.ParseDuration(a)
+			if err != nil {
+				panic("Unsupported Duration")
+			}
+
+			resource := args["type"].Value
+
+			if resource == "deployment" {
+				r = schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}
+			} else if resource == "configmap" {
+				r = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "configmaps"}
+			} else {
+				panic("Unsupported resource")
+			}
+
+			s := log.Print("Connecting to Kubernetes Cluster")
+			client, err := kubernetes.DynamicConfig("")
+			if err != nil {
+				fmt.Println(err.Error())
+				return
+			}
+			s.Stop()
+
+			s = log.Print(fmt.Sprintf("Fetching Deployments (namespace: %s)", n))
+			resources, err := kubernetes.ResourcesOlderThan(client, r, n, age)
+			s.Stop()
+
+			w := new(tabwriter.Writer)
+			w.Init(os.Stdout, 8, 8, 0, '\t', 0)
+			defer w.Flush()
+
+			fmt.Fprintf(w, "%s\t%s\n", "RESOURCE", "AGE")
+			for _, resource := range resources {
+				fmt.Fprintf(w, "%s\t%v\t\n", resource.Name, resource.Age)
+			}
+
 		})
 	commando.Parse(nil)
 }

@@ -9,9 +9,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/xrash/smetrics"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -20,44 +17,6 @@ import (
 type Deployment struct {
 	Name string
 	Age  time.Duration
-}
-
-var (
-	// DeploymentResource is a helper schema for interacting with Kubernetes Deployments
-	DeploymentResource = schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}
-)
-
-// ListDeploymentsOlderThan returns a list of the deployments older than the duration 'd'
-func ListDeploymentsOlderThan(c dynamic.Interface, n string, d time.Duration) ([]Deployment, error) {
-	list, err := c.Resource(DeploymentResource).Namespace(n).List(context.TODO(), meta_v1.ListOptions{})
-	if err != nil {
-		return nil, errors.Wrap(err, "getting deployments")
-	}
-
-	now := time.Now()
-	deployments := []Deployment{}
-	for _, deployment := range list.Items {
-		t, found, err := unstructured.NestedString(deployment.Object, "metadata", "creationTimestamp")
-		if err != nil || !found {
-			return nil, err
-		}
-
-		creation, err := time.Parse(time.RFC3339, t)
-
-		age := now.Sub(creation)
-		if age > d {
-			name, found, err := unstructured.NestedString(deployment.Object, "metadata", "name")
-			if err != nil || !found {
-				return nil, err
-			}
-			deployments = append(deployments, Deployment{
-				Name: name,
-				Age:  age.Round(time.Minute),
-			})
-		}
-	}
-
-	return deployments, nil
 }
 
 // ListDuplicateDeployments finds potential duplicate deployments from similar labels
