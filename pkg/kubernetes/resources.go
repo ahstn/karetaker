@@ -58,3 +58,7 @@ func ResourcesOlderThan(c dynamic.Interface, r schema.GroupVersionResource, n st
 func ResourcesInUse(c dynamic.Interface, n string) (map[string]bool, map[string]bool, error) {
 	return nil, nil, nil
 }
+
+func Resources(c dynamic.Interface, r schema.GroupVersionResource, n string) ([]string, error) {
+	return nil, nil
+}
