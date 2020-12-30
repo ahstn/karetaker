@@ -21,7 +21,7 @@ type Resource struct {
 }
 
 
-// ResourcesOlderThan returns a list of the resources older than the duration 'd'
+// ResourcesOlderThan returns a list of the resources older than the duration 'd'.
 func ResourcesOlderThan(c dynamic.Interface, r schema.GroupVersionResource, n string, d time.Duration, a []string) ([]Resource, error) {
 	list, err := c.Resource(r).Namespace(n).List(context.TODO(), meta_v1.ListOptions{})
 	if err != nil {
@@ -58,6 +58,10 @@ func ResourcesOlderThan(c dynamic.Interface, r schema.GroupVersionResource, n st
 	return resource, nil
 }
 
+// ResourcesInUse returns two maps of configmaps and secrets currently in use by existing pods.
+// NB: This needs broken up to limit the amount of nesting.
+// After retrieving the existing pods, it looks at containers.envFrom and volumes for configmap/secret references.
+// Any found references are placed into the respective maps (with the key as their metadata.name)
 func ResourcesInUse(c dynamic.Interface, n string) (map[string]bool, map[string]bool, error) {
 	list, err := c.Resource(PodSchema).Namespace(n).List(context.TODO(), meta_v1.ListOptions{})
 	if err != nil {
@@ -115,6 +119,7 @@ func ResourcesInUse(c dynamic.Interface, n string) (map[string]bool, map[string]
 	return configs, secrets, nil
 }
 
+// Resources returns all the existing objects for a given resource type.
 func Resources(c dynamic.Interface, r schema.GroupVersionResource, n string, a []string) ([]string, error) {
 	list, err := c.Resource(r).Namespace(n).List(context.TODO(), meta_v1.ListOptions{})
 	if err != nil {
