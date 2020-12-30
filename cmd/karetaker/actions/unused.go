@@ -11,9 +11,7 @@ import (
 	"github.com/thatisuday/commando"
 )
 
-var allowlist = []string{"default-token", "istio-ca", "sh.helm.release"}
-
-func UnusedAction(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
+func Unused(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
 	n, _ := flags["namespace"].GetString()
 	d, _ := flags["dry-run"].GetBool()
 	a, _ := flags["allow"].GetString()
