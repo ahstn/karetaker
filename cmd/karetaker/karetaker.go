@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/ahstn/karetaker/cmd/karetaker/actions"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"os"
 	"strings"
@@ -162,67 +163,7 @@ func main() {
 		AddFlag("namespace,n", "kubernetes namespace", commando.String, "default").
 		AddFlag("dry-run,d", "if true, only show the resources", commando.Bool, true).
 		AddFlag("allow,A", "allow list (CSV) of name patterns to ignore (i.e. 'istio')", commando.String, "").
-		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
-			n, _ := flags["namespace"].GetString()
-			d, _ := flags["dry-run"].GetBool()
-			a, _ := flags["allow"].GetString()
-			allowlist = append(allowlist, strings.Split(a, ",")[:]...)
-
-			fmt.Printf("Using Allow List of: %s\n\n", allowlist)
-
-			s := log.Print("Connecting to Kubernetes Cluster")
-			client, err := kubernetes.DynamicConfig("")
-			if err != nil {
-				fmt.Println(err.Error())
-				return
-			}
-			s.Stop()
-
-			s = log.Print(fmt.Sprintf("Fetching Deployments (namespace: %s)", n))
-			usedConfigs, usedSecrets, err := kubernetes.ResourcesInUse(client, n)
-			s.Stop()
-
-			fmt.Printf("Configs in use: %v\n", usedConfigs)
-			fmt.Printf("Secrets in use: %v\n", usedSecrets)
-
-			w := new(tabwriter.Writer)
-			w.Init(os.Stdout, 8, 8, 0, '\t', 0)
-			defer w.Flush()
-
-
-			configs, err := kubernetes.Resources(client, kubernetes.ConfigMapSchema, n, allowlist)
-			if err != nil {
-				panic(err)
-			}
-
-			fmt.Fprintf(w, "%s\t%s\n", "RESOURCE (CONFIGMAP)", "STATUS")
-			for _, config := range configs {
-				if _, isPresent := usedConfigs[config]; isPresent {
-					fmt.Fprintf(w, "%s\tIN-USE\t\n", config)
-				} else if d {
-					fmt.Fprintf(w, "%s\tUN-CHANGED (dry-run)\t\n", config)
-				} else {
-					fmt.Fprintf(w, "%s\tDELETED\t\n", config)
-				}
-			}
-
-			secrets, err := kubernetes.Resources(client, kubernetes.ConfigMapSchema, n, allowlist)
-			if err != nil {
-				panic(err)
-			}
-
-			fmt.Fprintf(w, "%s\t%s\n", "RESOURCE (SECRETS)", "STATUS")
-			for _, secret := range secrets {
-				if _, isPresent := usedSecrets[secret]; isPresent {
-					fmt.Fprintf(w, "%s\tIN-USE\t\n", secret)
-				} else if d {
-					fmt.Fprintf(w, "%s\tUN-CHANGED (dry-run)\t\n", secret)
-				} else {
-					fmt.Fprintf(w, "%s\tDELETED\t\n", secret)
-				}
-			}
-
-		})
+		SetAction(actions.UnusedAction)
 
 	commando.Parse(nil)
 }
