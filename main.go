@@ -109,10 +109,13 @@ func main() {
 		AddArgument("type", "type of resource", "deployment").
 		AddFlag("age,a", "age boundary to filter on", commando.String, "48h").
 		AddFlag("namespace,n", "kubernetes namespace", commando.String, "default").
+		AddFlag("allow,A", "allow list (CSV) of name patterns to ignore (i.e. 'istio')", commando.String, "").
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
 			r := schema.GroupVersionResource{}
 			n, _ := flags["namespace"].GetString()
 			a, _ := flags["age"].GetString()
+			al, _ := flags["allow"].GetString()
+			allowlist = append(allowlist, strings.Split(al, ",")[:]...)
 
 			age, err := time.ParseDuration(a)
 			if err != nil {
@@ -138,7 +141,7 @@ func main() {
 			s.Stop()
 
 			s = log.Print(fmt.Sprintf("Fetching Deployments (namespace: %s)", n))
-			resources, err := kubernetes.ResourcesOlderThan(client, r, n, age)
+			resources, err := kubernetes.ResourcesOlderThan(client, r, n, age, allowlist)
 			s.Stop()
 
 			w := new(tabwriter.Writer)
@@ -158,7 +161,7 @@ func main() {
 		AddArgument("type", "type of resource", "configmap").
 		AddFlag("namespace,n", "kubernetes namespace", commando.String, "default").
 		AddFlag("dry-run,d", "if true, only show the resources", commando.Bool, true).
-		AddFlag("allow,a", "allow list (CSV) of name patterns to ignore (i.e. 'istio')", commando.String, "").
+		AddFlag("allow,A", "allow list (CSV) of name patterns to ignore (i.e. 'istio')", commando.String, "").
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
 			n, _ := flags["namespace"].GetString()
 			d, _ := flags["dry-run"].GetBool()

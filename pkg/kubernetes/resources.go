@@ -22,7 +22,7 @@ type Resource struct {
 
 
 // ResourcesOlderThan returns a list of the resources older than the duration 'd'
-func ResourcesOlderThan(c dynamic.Interface, r schema.GroupVersionResource, n string, d time.Duration) ([]Resource, error) {
+func ResourcesOlderThan(c dynamic.Interface, r schema.GroupVersionResource, n string, d time.Duration, a []string) ([]Resource, error) {
 	list, err := c.Resource(r).Namespace(n).List(context.TODO(), meta_v1.ListOptions{})
 	if err != nil {
 		return nil, errors.Wrap(err, "getting resource")
@@ -45,11 +45,13 @@ func ResourcesOlderThan(c dynamic.Interface, r schema.GroupVersionResource, n st
 				return nil, err
 			}
 
-			resource = append(resource, Resource{
-				Name: name,
-				Kind: r.Resource,
-				Age:  age.Round(time.Minute),
-			})
+			if !stringContainsArrayElement(name, a) {
+				resource = append(resource, Resource{
+					Name: name,
+					Kind: r.Resource,
+					Age:  age.Round(time.Minute),
+				})
+			}
 		}
 	}
 
@@ -128,7 +130,6 @@ func Resources(c dynamic.Interface, r schema.GroupVersionResource, n string, a [
 
 		if !stringContainsArrayElement(name, a) {
 			resources = append(resources, name)
-
 		}
 	}
 

@@ -22,27 +22,42 @@ func TestResourcesOlderThan(t *testing.T) {
 	var tests = []struct {
 		name     string
 		duration time.Duration
-		expected []Resource
+		allow    []string
 		client   dynamic.Interface
+		expected []Resource
 	}{
 		{
-			name:     "returns two deployments older than the target duration",
+			name:     "returns deployments older than the target duration with no allow-list",
 			duration: 5 * time.Hour,
-			expected: []Resource{
-				{"eight-hours", "deployments", 8 * time.Hour},
-				{"seventy-hours", "deployments", 70 * time.Hour},
-			},
+			allow: []string{},
 			client: fake.NewSimpleDynamicClient(scheme,
 				newDeploymentWithTime("two-hours", time.Now().Add(-2*time.Hour)),
 				newDeploymentWithTime("eight-hours", time.Now().Add(-8*time.Hour)),
 				newDeploymentWithTime("seventy-hours", time.Now().Add(-70*time.Hour)),
 			),
+			expected: []Resource{
+				{"eight-hours", "deployments", 8 * time.Hour},
+				{"seventy-hours", "deployments", 70 * time.Hour},
+			},
+		},
+		{
+			name:     "returns deployments older than the target duration with allow-list",
+			duration: 5 * time.Hour,
+			allow: []string{"certs", "monitoring"},
+			client: fake.NewSimpleDynamicClient(scheme,
+				newDeploymentWithTime("seventy-hours", time.Now().Add(-70*time.Hour)),
+				newDeploymentWithTime("certs-controller", time.Now().Add(-120*time.Hour)),
+				newDeploymentWithTime("monitoring", time.Now().Add(-120*time.Hour)),
+			),
+			expected: []Resource{
+				{"seventy-hours", "deployments", 70 * time.Hour},
+			},
 		},
 	}
 
 	for _, test := range tests {
-		t.Run("Test", func(t *testing.T) {
-			actual, err := ResourcesOlderThan(test.client, deployResource, "default", test.duration)
+		t.Run(test.name, func(t *testing.T) {
+			actual, err := ResourcesOlderThan(test.client, deployResource, "default", test.duration, test.allow)
 			if err != nil {
 				t.Errorf("Unexpected error: %s", err)
 				return
@@ -59,16 +74,16 @@ func TestResources(t *testing.T) {
 	scheme := runtime.NewScheme()
 
 	tests := []struct {
-		name      string
-		resource  schema.GroupVersionResource
-		allow     []string
-		client    dynamic.Interface
-		expected  []string
+		name     string
+		resource schema.GroupVersionResource
+		allow    []string
+		client   dynamic.Interface
+		expected []string
 	}{
 		{
-			name: "Testing ConfigMaps with complete match allow list",
+			name:     "Testing ConfigMaps with complete match allow-list",
 			resource: ConfigMapSchema,
-			allow: []string{"allowed-config"},
+			allow:    []string{"allowed-config"},
 			client: fake.NewSimpleDynamicClient(scheme,
 				newConfigmap("properties"),
 				newConfigmap("env-vars"),
@@ -77,9 +92,9 @@ func TestResources(t *testing.T) {
 			expected: []string{"properties", "env-vars"},
 		},
 		{
-			name: "Testing Secrets with contains match allow list",
+			name:     "Testing Secrets with contains match allow-list",
 			resource: SecretSchema,
-			allow: []string{"allowed"},
+			allow:    []string{"allowed"},
 			client: fake.NewSimpleDynamicClient(scheme,
 				newSecret("tokens"),
 				newSecret("certs"),
