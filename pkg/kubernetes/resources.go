@@ -87,8 +87,10 @@ func ResourcesInUse(c dynamic.Interface, n string) (map[string]bool, map[string]
 		}
 
 		volumes, found, err := unstructured.NestedSlice(pod.Object, "spec", "volumes")
-		if err != nil || !found {
+		if err != nil {
 			return nil, nil, err
+		} else if !found {
+			continue
 		}
 
 		for _, volume := range volumes {

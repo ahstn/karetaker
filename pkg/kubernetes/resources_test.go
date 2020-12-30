@@ -29,7 +29,7 @@ func TestResourcesOlderThan(t *testing.T) {
 			name: "returns two deployments older than the target duration",
 			duration: 5 * time.Hour,
 			expected: []Resource{
-				{"eight-hours", "deployments", 5 * time.Hour},
+				{"eight-hours", "deployments", 8 * time.Hour},
 				{"seventy-hours", "deployments", 70 * time.Hour},
 			},
 			client: fake.NewSimpleDynamicClient(scheme,
@@ -57,27 +57,53 @@ func TestResourcesOlderThan(t *testing.T) {
 
 func TestResourcesInUse(t *testing.T) {
 	scheme := runtime.NewScheme()
+	expectedConfigs := map[string]bool{"properties": true, "env-vars": true}
+	expectedSecrets := map[string]bool{"tokens": true}
 
-	configs := []string{"properties", "env-vars"}
-	secrets := []string{"tokens"}
+	client := fake.NewSimpleDynamicClient(scheme,
+		newPodWithVolumes("config-pod", "properties", "tokens"),
+		newPodWithConfigMapEnv("env-pod", "env-vars"),
+		newConfigmap("unused-config"),
+		newSecret("unused-secret"),
+	)
 
-	client := fake.NewSimpleDynamicClient(scheme, newPodWithVolumes("config-pod", "properties", "tokens"))
+	configs, secrets, err := ResourcesInUse(client, "default")
+	if err != nil {
+		t.Error(err)
+	}
 
-	t.Run("returns used configmap and secret", func(t *testing.T) {
-		actualConfigs, actualSecrets, err := ResourcesInUse(client, "default")
-		if err != nil {
-			t.Errorf("Unexpected error: %s", err)
-			return
-		}
+	if diff := cmp.Diff(configs, expectedConfigs); diff != "" {
+		t.Errorf("%T differ (-got, +want): %s", []string{"properties"}, diff)
+		return
+	}
 
-		if diff := cmp.Diff(actualSecrets, secrets); diff != "" {
-			t.Errorf("Secrets differ, (-got +want): %s", diff)
-		}
+	if diff := cmp.Diff(secrets, expectedSecrets); diff != "" {
+		t.Errorf("%T differ (-got, +want): %s", []string{"properties"}, diff)
+		return
+	}
 
-		if diff := cmp.Diff(actualConfigs, configs); diff != "" {
-			t.Errorf("Configs differ, (-got +want): %s", diff)
-		}
-	})
+}
+
+func newResource(api, kind, name string) *unstructured.Unstructured {
+	return &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": api,
+			"kind":       kind,
+			"metadata": map[string]interface{}{
+				"namespace": "default",
+				"name":      name,
+				"creationTimestamp": time.Now().Format(time.RFC3339),
+			},
+		},
+	}
+}
+
+func newConfigmap(name string) *unstructured.Unstructured {
+	return newResource("v1", "configmap", name)
+}
+
+func newSecret(name string) *unstructured.Unstructured {
+	return newResource("v1", "secret", name)
 }
 
 func newResourceWithTime(api, kind, name string, t time.Time) *unstructured.Unstructured {
@@ -94,10 +120,18 @@ func newResourceWithTime(api, kind, name string, t time.Time) *unstructured.Unst
 	}
 }
 
+func newDeploymentWithTime(name string, t time.Time) *unstructured.Unstructured {
+	return newResourceWithTime("apps/v1", "deployment", name, t)
+}
 
-// Adding to "fake" Kubernetes client fails on the following:
-// DeepCopyJSON - cannot deep copy []map[string]interface
-// TODO: GH Issue in kubernetes/client-go
+func newConfigmapWithTime(name string, t time.Time) *unstructured.Unstructured {
+	return newResourceWithTime("v1", "configmap", name, t)
+}
+
+func newSecretWithTime(name string, t time.Time) *unstructured.Unstructured {
+	return newResourceWithTime("v1", "secret", name, t)
+}
+
 func newPodWithVolumes(name, config, secret string) *unstructured.Unstructured {
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -106,26 +140,25 @@ func newPodWithVolumes(name, config, secret string) *unstructured.Unstructured {
 			"metadata": map[string]interface{}{
 				"namespace": "default",
 				"name":      name,
-				"creationTimestamp": time.Now().Format(time.RFC3339),
 			},
 			"spec": map[string]interface{}{
-				"containers": []map[string]interface{}{
-					{
+				"containers": []interface{}{
+					map[string]interface{}{
 						"name": name,
 					},
 				},
-			},
-			"volumes": []map[string]interface{}{
-				{
-					"name": secret,
-					"secret": map[string]interface{}{
-						"secretName": secret,
+				"volumes": []interface{}{
+					map[string]interface{}{
+						"name": secret,
+						"secret": map[string]interface{}{
+							"secretName": secret,
+						},
 					},
-				},
-				{
-					"name": config,
-					"configMap": map[string]interface{}{
+					map[string]interface{}{
 						"name": config,
+						"configMap": map[string]interface{}{
+							"name": config,
+						},
 					},
 				},
 			},
@@ -133,7 +166,6 @@ func newPodWithVolumes(name, config, secret string) *unstructured.Unstructured {
 	}
 }
 
-// Same issue as above
 func newPodWithConfigMapEnv(name, config string) *unstructured.Unstructured {
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -145,11 +177,11 @@ func newPodWithConfigMapEnv(name, config string) *unstructured.Unstructured {
 				"creationTimestamp": time.Now().Format(time.RFC3339),
 			},
 			"spec": map[string]interface{}{
-				"containers": []map[string]interface{}{
-					{
+				"containers": []interface{}{
+					map[string]interface{}{
 						"name": name,
-						"envFrom": []map[string]interface{}{
-							{
+						"envFrom": []interface{}{
+							map[string]interface{}{
 								"configMapRef": map[string]interface{}{
 									"name": config,
 								},
@@ -161,16 +193,4 @@ func newPodWithConfigMapEnv(name, config string) *unstructured.Unstructured {
 			},
 		},
 	}
-}
-
-func newDeploymentWithTime(name string, t time.Time) *unstructured.Unstructured {
-	return newResourceWithTime("apps/v1", "deployment", name, t)
-}
-
-func newConfigmapWithTime(name string, t time.Time) *unstructured.Unstructured {
-	return newResourceWithTime("v1", "configmap", name, t)
-}
-
-func newSecretWithTime(name string, t time.Time) *unstructured.Unstructured {
-	return newResourceWithTime("v1", "secret", name, t)
 }
