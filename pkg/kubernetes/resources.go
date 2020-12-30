@@ -54,3 +54,79 @@ func ResourcesOlderThan(c dynamic.Interface, r schema.GroupVersionResource, n st
 
 	return resource, nil
 }
+
+func ResourcesInUse(c dynamic.Interface, n string) (map[string]bool, map[string]bool, error) {
+	list, err := c.Resource(PodSchema).Namespace(n).List(context.TODO(), meta_v1.ListOptions{})
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "error getting pods")
+	}
+
+	secrets := make(map[string]bool)
+	configs := make(map[string]bool)
+
+	for _, pod := range list.Items {
+		containers, found, err := unstructured.NestedSlice(pod.Object, "spec", "containers")
+		if err != nil || !found {
+			return nil, nil, err
+		}
+
+		for _, container := range containers {
+			envs, found, err := unstructured.NestedSlice(container.(map[string]interface{}), "envFrom")
+			if err != nil {
+				return nil, nil, err
+			} else if found {
+				for _, env := range envs {
+					config, found, err := unstructured.NestedString(env.(map[string]interface{}), "configMapRef", "name")
+					if err != nil {
+						return nil, nil, err
+					} else if found {
+						configs[config] = true
+					}
+				}
+			}
+		}
+
+		volumes, found, err := unstructured.NestedSlice(pod.Object, "spec", "volumes")
+		if err != nil {
+			return nil, nil, err
+		} else if !found {
+			continue
+		}
+
+		for _, volume := range volumes {
+			config, found, err := unstructured.NestedString(volume.(map[string]interface{}), "configMap", "name")
+			if err != nil {
+				return nil, nil, err
+			} else if found {
+				configs[config] = true
+			}
+
+			secret, found, err := unstructured.NestedString(volume.(map[string]interface{}), "secret", "secretName")
+			if err != nil {
+				return nil, nil, err
+			} else if found {
+				secrets[secret] = true
+			}
+		}
+	}
+	return configs, secrets, nil
+}
+
+func Resources(c dynamic.Interface, r schema.GroupVersionResource, n string) ([]string, error) {
+	list, err := c.Resource(r).Namespace(n).List(context.TODO(), meta_v1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var resources []string
+	for _, resource := range list.Items {
+		name, found, err := unstructured.NestedString(resource.Object, "metadata", "name")
+		if err != nil || !found {
+			return nil, err
+		}
+
+		resources = append(resources, name)
+	}
+
+ 	return resources, nil
+}
