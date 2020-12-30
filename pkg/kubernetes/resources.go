@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -112,7 +113,7 @@ func ResourcesInUse(c dynamic.Interface, n string) (map[string]bool, map[string]
 	return configs, secrets, nil
 }
 
-func Resources(c dynamic.Interface, r schema.GroupVersionResource, n string) ([]string, error) {
+func Resources(c dynamic.Interface, r schema.GroupVersionResource, n string, a []string) ([]string, error) {
 	list, err := c.Resource(r).Namespace(n).List(context.TODO(), meta_v1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -125,8 +126,20 @@ func Resources(c dynamic.Interface, r schema.GroupVersionResource, n string) ([]
 			return nil, err
 		}
 
-		resources = append(resources, name)
+		if !stringContainsArrayElement(name, a) {
+			resources = append(resources, name)
+
+		}
 	}
 
  	return resources, nil
+}
+
+func stringContainsArrayElement(s string, t []string) bool {
+	for _, e := range t {
+		if strings.Contains(s, e) {
+			return true
+		}
+	}
+	return false
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"os"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -42,6 +43,8 @@ var questions = []*survey.Question{
 		Validate: survey.Required,
 	},
 }
+
+var allowlist = []string{"default-token", "istio-ca", "sh.helm.release"}
 
 func main() {
 	answers := struct {
@@ -155,9 +158,14 @@ func main() {
 		AddArgument("type", "type of resource", "configmap").
 		AddFlag("namespace,n", "kubernetes namespace", commando.String, "default").
 		AddFlag("dry-run,d", "if true, only show the resources", commando.Bool, true).
+		AddFlag("allow,a", "allow list (CSV) of name patterns to ignore (i.e. 'istio')", commando.String, "").
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
 			n, _ := flags["namespace"].GetString()
 			d, _ := flags["dry-run"].GetBool()
+			a, _ := flags["allow"].GetString()
+			allowlist = append(allowlist, strings.Split(a, ",")[:]...)
+
+			fmt.Printf("Using Allow List of: %s\n\n", allowlist)
 
 			s := log.Print("Connecting to Kubernetes Cluster")
 			client, err := kubernetes.DynamicConfig("")
@@ -171,15 +179,15 @@ func main() {
 			usedConfigs, usedSecrets, err := kubernetes.ResourcesInUse(client, n)
 			s.Stop()
 
-			fmt.Printf("Configs in use: %v/n", usedConfigs)
-			fmt.Printf("Secrets in use: %v/n", usedSecrets)
+			fmt.Printf("Configs in use: %v\n", usedConfigs)
+			fmt.Printf("Secrets in use: %v\n", usedSecrets)
 
 			w := new(tabwriter.Writer)
 			w.Init(os.Stdout, 8, 8, 0, '\t', 0)
 			defer w.Flush()
 
 
-			configs, err := kubernetes.Resources(client, kubernetes.ConfigMapSchema, n)
+			configs, err := kubernetes.Resources(client, kubernetes.ConfigMapSchema, n, allowlist)
 			if err != nil {
 				panic(err)
 			}
@@ -195,7 +203,7 @@ func main() {
 				}
 			}
 
-			secrets, err := kubernetes.Resources(client, kubernetes.ConfigMapSchema, n)
+			secrets, err := kubernetes.Resources(client, kubernetes.ConfigMapSchema, n, allowlist)
 			if err != nil {
 				panic(err)
 			}
