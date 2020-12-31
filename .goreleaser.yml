@@ -1,0 +1,29 @@
+# http://goreleaser.com
+before:
+  hooks:
+  - go mod download
+builds:
+- binary: karetaker
+  main: ./cmd/karetaker/karetaker.go
+  env:
+  - CGO_ENABLED=0
+  goos:
+  - linux
+  - windows
+  - darwin
+  goarch:
+  - amd64
+
+archives:
+- format: binary
+
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ .Tag }}-develop"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'

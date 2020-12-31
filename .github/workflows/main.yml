@@ -1,9 +1,8 @@
-name: CI
+name: Build & Test
 
 # Controls when the action will run - on push or pull request events but only for the master branch or manually triggered.
 on:
   push:
-    branches: [ master ]
   pull_request:
     branches: [ master ]
   workflow_dispatch:
@@ -20,3 +19,10 @@ jobs:
           go-version: '^1.14.0'
       - name: Build Project
         run: go build cmd/karetaker/karetaker.go
+      - name: Test Project
+        run: go test -coverprofile=coverage.txt -covermode=atomic ./...
+      - name: Upload Coverage
+        uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage.txt
