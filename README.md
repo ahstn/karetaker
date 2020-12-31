@@ -1,5 +1,7 @@
 # Karetaker
 
+[![codecov](https://codecov.io/gh/ahstn/karetaker/branch/main/graph/badge.svg?token=Y4LCYHK8OQ)](https://codecov.io/gh/ahstn/karetaker)
+
 **WORK IN PROGRESS. Only for dev and experimental use.**
 
 ## Overview
