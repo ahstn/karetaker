@@ -40,4 +40,6 @@ func Age(c dynamic.Interface, u domain.Age, o io.Writer) error {
 			}
 		}
 	}
+
+	return nil
 }
