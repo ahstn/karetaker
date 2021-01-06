@@ -149,6 +149,30 @@ func TestResourcesInUse(t *testing.T) {
 
 }
 
+func TestDeleteResource(t *testing.T) {
+	scheme := runtime.NewScheme()
+
+	client := fake.NewSimpleDynamicClient(scheme,
+		newConfigmap("unused-config"),
+		newSecret("unused-secret"),
+	)
+
+	err := DeleteResource(client, ConfigMapSchema, "default", "unused-config")
+	if err != nil {
+		t.Errorf("Unexpected error: %s", err)
+	}
+
+	err = DeleteResource(client, SecretSchema, "default", "unused-secret")
+	if err != nil {
+		t.Errorf("Unexpected error: %s", err)
+	}
+
+	err = DeleteResource(client, PodSchema, "default", "invalid-should-err")
+	if err == nil {
+		t.Errorf("Expected error, but got: %s", err)
+	}
+}
+
 func newResource(api, kind, name string) *unstructured.Unstructured {
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{

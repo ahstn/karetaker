@@ -2,22 +2,13 @@ package kubernetes
 
 import (
 	"context"
-	"log"
-	"regexp"
-	"time"
-
 	"github.com/pkg/errors"
 	"github.com/xrash/smetrics"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"log"
+	"regexp"
 )
-
-// Deployment is a stripped down version of the Kubernetes Resource.
-// It only holds the name and age of the resource.
-type Deployment struct {
-	Name string
-	Age  time.Duration
-}
 
 // ListDuplicateDeployments finds potential duplicate deployments from similar labels
 // i.e. [dev, release, john4, dev2, john5] should match [dev, dev2] and [john4, john5]
