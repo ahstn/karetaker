@@ -46,7 +46,10 @@ func Unused(c dynamic.Interface, u domain.Unused, o io.Writer) error {
 				fmt.Fprintf(o, "%s\tUN-CHANGED (dry-run)\t\n", item)
 			} else {
 				fmt.Fprintf(o, "%s\tDELETED\t\n", item)
-				// TODO : Actually delete
+				err = kubernetes.DeleteResource(c, gvr, u.Namespace, item)
+				if err != nil {
+					fmt.Printf("error deleting %s, continuing...", item)
+				}
 			}
 		}
 	}
