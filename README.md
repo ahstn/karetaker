@@ -122,9 +122,11 @@ In a roughly prioritised order:
 - [x] Allow list of resources/objects to ignore 
 - [ ] Config file for batch execution  
 - [ ] Add Logging for batch execution (i.e. logrus)
+- [ ] Duplicate should consider pod image and possibly environment variables 
+- [ ] Use default namespace from kubeconfig
+- [ ] Authenticate using Service Account (In-Cluster Usage)
 - [ ] List Deployments without a desired running replica(s)
 - [ ] List Deployments using 90% of resource limits
-- [ ] Authenticate using Service Account (In-Cluster Usage)
 - [ ] Integration Tests using KinD
 - [ ] Add progress bars for ANSI terminals (i.e. spinners & emojis)
 - [ ] Interactive Clean-Up CLI

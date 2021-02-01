@@ -141,6 +141,15 @@ func Resources(c dynamic.Interface, r schema.GroupVersionResource, n string, a [
  	return resources, nil
 }
 
+func DeleteResource(c dynamic.Interface, r schema.GroupVersionResource, ns, n string) error {
+	deletePolicy := meta_v1.DeletePropagationForeground
+	deleteOptions := meta_v1.DeleteOptions{
+		PropagationPolicy: &deletePolicy,
+	}
+
+	return c.Resource(r).Namespace(ns).Delete(context.TODO(), n, deleteOptions)
+}
+
 func stringContainsArrayElement(s string, t []string) bool {
 	for _, e := range t {
 		if strings.Contains(s, e) {
