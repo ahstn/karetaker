@@ -37,7 +37,7 @@ type Age struct {
 	DryRun    bool
 }
 
-func NewAgeConfig(r, a string, d bool) (Age, error) {
+func NewAgeConfig(r, a, n string, d bool) (Age, error) {
 	age, err := time.ParseDuration(a)
 	if err != nil {
 		return Age{}, errors.Wrap(err, "unsupported duration")
@@ -47,5 +47,6 @@ func NewAgeConfig(r, a string, d bool) (Age, error) {
 		Resources: strings.Split(r, ","),
 		Age:       age,
 		DryRun:    d,
+		Namespace: n,
 	}, nil
 }

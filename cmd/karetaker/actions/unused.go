@@ -26,8 +26,7 @@ func Unused(args map[string]commando.ArgValue, flags map[string]commando.FlagVal
 		DryRun:    d,
 	}
 
-	fmt.Printf("Using Allow List of: %s\n\n", allowlist)
-
+	fmt.Printf("Using Allow List of: %s\n", allowlist)
 	fmt.Println("Connecting to Kubernetes Cluster")
 	client, err := kubernetes.DynamicConfig("")
 	if err != nil {
