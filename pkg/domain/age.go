@@ -14,10 +14,10 @@ type Unused struct {
 	Namespace string
 
 	// Allow is a list of patterns to ignore when operating (i.e. don't delete objects containing these)
-	Allow     []string
+	Allow []string
 
 	// DryRun controls if the deletion occurs or not
-	DryRun    bool
+	DryRun bool
 }
 
 type Age struct {
@@ -25,19 +25,19 @@ type Age struct {
 	Resources []string
 
 	// Age is the target to filter on
-	Age       time.Duration
+	Age time.Duration
 
 	// Namespace is the Kubernetes namespace to operate in
 	Namespace string
 
 	// Allow is a list of patterns to ignore when operating (i.e. don't delete objects containing these)
-	Allow     []string
+	Allow []string
 
 	// DryRun controls if the deletion occurs or not
-	DryRun    bool
+	DryRun bool
 }
 
-func NewAgeConfig(r, a, n string, d bool) (Age, error) {
+func NewAgeConfig(r, a, n string, allow []string, d bool) (Age, error) {
 	age, err := time.ParseDuration(a)
 	if err != nil {
 		return Age{}, errors.Wrap(err, "unsupported duration")
@@ -46,6 +46,7 @@ func NewAgeConfig(r, a, n string, d bool) (Age, error) {
 	return Age{
 		Resources: strings.Split(r, ","),
 		Age:       age,
+		Allow:     allow,
 		DryRun:    d,
 		Namespace: n,
 	}, nil
