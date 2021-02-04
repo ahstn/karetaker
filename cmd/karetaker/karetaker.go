@@ -26,6 +26,7 @@ func main() {
 		AddArgument("type", "type of resource", "deployment").
 		AddFlag("age,a", "age boundary to filter on", commando.String, "48h").
 		AddFlag("namespace,n", "kubernetes namespace", commando.String, "default").
+		AddFlag("dry-run,d", "if true, only show the resources", commando.Bool, true).
 		AddFlag("allow,A", "allow list (CSV) of name patterns to ignore (i.e. 'istio')", commando.String, "").
 		SetAction(actions.Age)
 

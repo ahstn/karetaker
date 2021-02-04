@@ -21,7 +21,7 @@ func Age(args map[string]commando.ArgValue, flags map[string]commando.FlagValue)
 	t := args["type"].Value
 	allowlist = append(allowlist, strings.Split(al, ",")[:]...)
 
-	config, err := domain.NewAgeConfig(t, a, n, d)
+	config, err := domain.NewAgeConfig(t, a, n, allowlist, d)
 	if err != nil {
 		panic(err)
 	}

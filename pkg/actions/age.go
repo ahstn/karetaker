@@ -22,6 +22,8 @@ func Age(c dynamic.Interface, u domain.Age, o io.Writer) error {
 			gvr = kubernetes.SecretSchema
 		case "deploy","deployment","deployments":
 			gvr = kubernetes.DeploymentSchema
+		case "ss","statefulset","statefulsets":
+			gvr = kubernetes.StatefulSetSchema
 		default:
 			fmt.Fprintf(o, "Unsupported resource: %s, skipping.", resource)
 			continue
