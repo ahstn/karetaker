@@ -20,7 +20,6 @@ type Resource struct {
 	Age  time.Duration
 }
 
-
 // ResourcesOlderThan returns a list of the resources older than the duration 'd'.
 func ResourcesOlderThan(c dynamic.Interface, r schema.GroupVersionResource, n string, d time.Duration, a []string) ([]Resource, error) {
 	list, err := c.Resource(r).Namespace(n).List(context.TODO(), meta_v1.ListOptions{})
@@ -119,6 +118,9 @@ func ResourcesInUse(c dynamic.Interface, n string) (map[string]bool, map[string]
 	return configs, secrets, nil
 }
 
+// ResourcesInUse returns a map of services currently in use by existing ingresses.
+// After retrieving the existing ingresses, it looks at "serviceName" occurrences in "http.paths".
+// Any found references are placed into the returned map (with the key as their metadata.name)
 func ServicesUsedByIngress(c dynamic.Interface, n string) (map[string]bool, error) {
 	list, err := c.Resource(IngressSchema).Namespace(n).List(context.TODO(), meta_v1.ListOptions{})
 	if err != nil {
@@ -128,7 +130,6 @@ func ServicesUsedByIngress(c dynamic.Interface, n string) (map[string]bool, erro
 	services := make(map[string]bool)
 
 	for _, pod := range list.Items {
-
 		rules, found, err := unstructured.NestedSlice(pod.Object, "spec", "rules")
 		if err != nil {
 			return nil, err
@@ -150,7 +151,6 @@ func ServicesUsedByIngress(c dynamic.Interface, n string) (map[string]bool, erro
 					}
 				}
 			}
-
 		}
 	}
 	return services, nil
@@ -175,9 +175,10 @@ func Resources(c dynamic.Interface, r schema.GroupVersionResource, n string, a [
 		}
 	}
 
- 	return resources, nil
+	return resources, nil
 }
 
+// DeleteResource simply deletes an existing resource given the name, gvr and namespace passed in.
 func DeleteResource(c dynamic.Interface, r schema.GroupVersionResource, ns, n string) error {
 	deletePolicy := meta_v1.DeletePropagationForeground
 	deleteOptions := meta_v1.DeleteOptions{
