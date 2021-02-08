@@ -84,6 +84,74 @@ func TestUnusedLogOutputAndDeletion(t *testing.T) {
 	}
 }
 
+func TestMultipleUnusedLogOutputAndDeletion(t *testing.T) {
+	unusedConfig := "unused-config"
+	unusedService := "unused-service"
+	scheme := runtime.NewScheme()
+	client := fake.NewSimpleDynamicClient(scheme,
+		newPodWithVolumes("config-pod", "properties", "tokens"),
+		newConfigmap(unusedConfig),
+		newConfigmap("properties"),
+		newIngress("service-ingress", "entrypoint"),
+		newService(unusedService),
+		newService("entrypoint"),
+	)
+
+	tests := []struct {
+		name      string
+		config    domain.Unused
+		expected  []string
+	}{
+		{
+			name: "On dry-run, objects are printed and not deleted",
+			config: domain.Unused{
+				Resources: []string{"configmap","service"},
+				Namespace: "default",
+				Allow:     []string{},
+				DryRun:    true,
+			},
+			expected: []string{
+				fmt.Sprintf("%s\tUN-CHANGED (dry-run)", unusedConfig),
+				fmt.Sprintf("properties\tIN-USE"),
+				fmt.Sprintf("%s\tUN-CHANGED (dry-run)", unusedService),
+				fmt.Sprintf("entrypoint\tIN-USE"),
+			},
+		},
+		{
+			name: "Objects are printed and deleted",
+			config: domain.Unused{
+				Resources: []string{"configmap","service"},
+				Namespace: "default",
+				Allow:     []string{},
+				DryRun: false,
+			},
+			expected: []string{
+				fmt.Sprintf("%s\tDELETED", unusedConfig),
+				fmt.Sprintf("properties\tIN-USE"),
+				fmt.Sprintf("%s\tDELETED", unusedService),
+				fmt.Sprintf("entrypoint\tIN-USE"),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			o := &bytes.Buffer{}
+			err := Unused(client, tt.config, o)
+			if err != nil {
+				t.Errorf("Unused() error = %v", err)
+				return
+			}
+
+			for _, string := range tt.expected {
+				if !strings.Contains(o.String(), string) {
+					t.Errorf("Output error, \nexpected: %s \ngot: %s", string, o.String())
+					return
+				}
+			}
+		})
+	}
+}
+
 func newResource(api, kind, name string) *unstructured.Unstructured {
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -100,6 +168,10 @@ func newResource(api, kind, name string) *unstructured.Unstructured {
 
 func newConfigmap(name string) *unstructured.Unstructured {
 	return newResource("v1", "configmap", name)
+}
+
+func newService(name string) *unstructured.Unstructured {
+	return newResource("v1", "service", name)
 }
 
 func newPodWithVolumes(name, config, secret string) *unstructured.Unstructured {
@@ -128,6 +200,35 @@ func newPodWithVolumes(name, config, secret string) *unstructured.Unstructured {
 						"name": config,
 						"configMap": map[string]interface{}{
 							"name": config,
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func newIngress(name, service string) *unstructured.Unstructured {
+	return &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "extensions/v1beta1",
+			"kind":       "ingress",
+			"metadata": map[string]interface{}{
+				"namespace": "default",
+				"name":      name,
+			},
+			"spec": map[string]interface{}{
+				"rules": []interface{}{
+					map[string]interface{}{
+						"host": "localhost",
+						"http": map[string]interface{}{
+							"paths": []interface{}{
+								map[string]interface{}{
+									"backend": map[string]interface{}{
+										"serviceName": service,
+									},
+								},
+							},
 						},
 					},
 				},

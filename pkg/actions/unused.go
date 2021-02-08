@@ -17,6 +17,11 @@ func Unused(c dynamic.Interface, u domain.Unused, o io.Writer) error {
 		return err
 	}
 
+	usedServices, err := kubernetes.ServicesUsedByIngress(c, u.Namespace)
+	if err != nil {
+		return err
+	}
+
 	for _, resource := range u.Resources {
 		var gvr schema.GroupVersionResource
 		var ref map[string]bool
@@ -28,6 +33,9 @@ func Unused(c dynamic.Interface, u domain.Unused, o io.Writer) error {
 		case "secret","secrets":
 			gvr = kubernetes.SecretSchema
 			ref = usedSecrets
+		case "svc","service","services":
+			gvr = kubernetes.ServiceSchema
+			ref = usedServices
 		default:
 			fmt.Fprintf(o, "Unsupported resource: %s, skipping.", resource)
 			continue
