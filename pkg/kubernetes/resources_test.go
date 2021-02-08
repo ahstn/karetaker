@@ -146,7 +146,27 @@ func TestResourcesInUse(t *testing.T) {
 		t.Errorf("%T differ (-got, +want): %s", []string{"properties"}, diff)
 		return
 	}
+}
 
+func TestServicesUsedByIngress(t *testing.T) {
+	scheme := runtime.NewScheme()
+	expectedServices := map[string]bool{"auth": true}
+
+	client := fake.NewSimpleDynamicClient(scheme,
+		newIngress("auth-ingress", "auth"),
+		newService("auth"),
+		newService("unused"),
+	)
+
+	services, err := ServicesUsedByIngress(client, "default")
+	if err != nil {
+		t.Error(err)
+	}
+
+	if diff := cmp.Diff(services, expectedServices); diff != "" {
+		t.Errorf("%T differ (-got, +want): %s", []string{"properties"}, diff)
+		return
+	}
 }
 
 func TestDeleteResource(t *testing.T) {
@@ -193,6 +213,10 @@ func newConfigmap(name string) *unstructured.Unstructured {
 
 func newSecret(name string) *unstructured.Unstructured {
 	return newResource("v1", "secret", name)
+}
+
+func newService(name string) *unstructured.Unstructured {
+	return newResource("v1", "service", name)
 }
 
 func newResourceWithTime(api, kind, name string, t time.Time) *unstructured.Unstructured {
@@ -273,6 +297,35 @@ func newPodWithConfigMapEnv(name, config string) *unstructured.Unstructured {
 							map[string]interface{}{
 								"configMapRef": map[string]interface{}{
 									"name": config,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func newIngress(name, service string) *unstructured.Unstructured {
+	return &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "extensions/v1beta1",
+			"kind":       "ingress",
+			"metadata": map[string]interface{}{
+				"namespace": "default",
+				"name":      name,
+			},
+			"spec": map[string]interface{}{
+				"rules": []interface{}{
+					map[string]interface{}{
+						"host": "localhost",
+						"http": map[string]interface{}{
+							"paths": []interface{}{
+								map[string]interface{}{
+									"backend": map[string]interface{}{
+										"serviceName": service,
+									},
 								},
 							},
 						},

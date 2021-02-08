@@ -119,6 +119,43 @@ func ResourcesInUse(c dynamic.Interface, n string) (map[string]bool, map[string]
 	return configs, secrets, nil
 }
 
+func ServicesUsedByIngress(c dynamic.Interface, n string) (map[string]bool, error) {
+	list, err := c.Resource(IngressSchema).Namespace(n).List(context.TODO(), meta_v1.ListOptions{})
+	if err != nil {
+		return nil, errors.Wrap(err, "error getting pods")
+	}
+
+	services := make(map[string]bool)
+
+	for _, pod := range list.Items {
+
+		rules, found, err := unstructured.NestedSlice(pod.Object, "spec", "rules")
+		if err != nil {
+			return nil, err
+		} else if !found {
+			continue
+		}
+
+		for _, rule := range rules {
+			paths, found, err := unstructured.NestedSlice(rule.(map[string]interface{}), "http", "paths")
+			if err != nil {
+				return nil, err
+			} else if found {
+				for _, path := range paths {
+					service, found, err := unstructured.NestedString(path.(map[string]interface{}), "backend", "serviceName")
+					if err != nil {
+						return nil, err
+					} else if found {
+						services[service] = true
+					}
+				}
+			}
+
+		}
+	}
+	return services, nil
+}
+
 // Resources returns all the existing objects for a given resource type.
 func Resources(c dynamic.Interface, r schema.GroupVersionResource, n string, a []string) ([]string, error) {
 	list, err := c.Resource(r).Namespace(n).List(context.TODO(), meta_v1.ListOptions{})
