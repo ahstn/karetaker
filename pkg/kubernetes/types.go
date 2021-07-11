@@ -9,4 +9,6 @@ var (
 
 	DeploymentSchema = schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}
 	StatefulSetSchema = schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "statefulsets"}
+
+	JobSchema = schema.GroupVersionResource{Group: "batch", Version: "v1", Resource: "jobs"}
 )

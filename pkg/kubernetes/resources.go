@@ -18,6 +18,7 @@ type Resource struct {
 	Name string
 	Kind string
 	Age  time.Duration
+	Status string
 }
 
 

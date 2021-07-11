@@ -282,3 +282,37 @@ func newPodWithConfigMapEnv(name, config string) *unstructured.Unstructured {
 		},
 	}
 }
+
+func newCompletedJob(name string) *unstructured.Unstructured {
+	return newJobWithStatus(name, map[string]interface{}{
+		"succeeded": 1,
+	})
+}
+
+func newFailedJob(name string) *unstructured.Unstructured {
+	return newJobWithStatus(name, map[string]interface{}{
+		"failed": 1,
+	})
+}
+
+func newJobWithStatus(name string, status map[string]interface{}) *unstructured.Unstructured {
+	return &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "batch/v1",
+			"kind":       "job",
+			"metadata": map[string]interface{}{
+				"namespace":         "default",
+				"name":              name,
+				"creationTimestamp": time.Now().Format(time.RFC3339),
+			},
+			"status": status,
+			"spec": map[string]interface{}{
+				"containers": []interface{}{
+					map[string]interface{}{
+						"name": name,
+					},
+				},
+			},
+		},
+	}
+}
