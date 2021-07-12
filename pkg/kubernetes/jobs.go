@@ -29,7 +29,7 @@ func JobsNotRunning(c dynamic.Interface, n string, a []string) ([]Resource, erro
 			return nil, err
 		}
 
-		// TODO: Extract this, enum status and potentially cover pod statuses also
+		// TODO: Extract this, enum status and potentially cover deploy statuses also
 		var status string
 		succeeded, found, err := unstructured.NestedInt64(job.Object, "status", "succeeded")
 		if err != nil {
@@ -60,6 +60,7 @@ func JobsNotRunning(c dynamic.Interface, n string, a []string) ([]Resource, erro
 	return resource, nil
 }
 
+// TODO: Test dis
 func determineObjectAge(job unstructured.Unstructured, now time.Time) (time.Duration, error) {
 	t, found, err := unstructured.NestedString(job.Object, "metadata", "creationTimestamp")
 	if err != nil || !found {
