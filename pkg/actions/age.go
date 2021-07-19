@@ -24,6 +24,8 @@ func Age(c dynamic.Interface, u domain.Age, o io.Writer) error {
 			gvr = kubernetes.DeploymentSchema
 		case "ss","statefulset","statefulsets":
 			gvr = kubernetes.StatefulSetSchema
+		case "svc","service","services":
+			gvr = kubernetes.ServiceSchema
 		case "job","jobs":
 			gvr = kubernetes.JobSchema
 		default:
@@ -44,7 +46,7 @@ func Age(c dynamic.Interface, u domain.Age, o io.Writer) error {
 				fmt.Fprintf(o, "%s\t%v\tDELETED\n", item.Name, item.Age)
 				err = kubernetes.DeleteResource(c, gvr, u.Namespace, item.Name)
 				if err != nil {
-					fmt.Printf("error deleting %s, continuing...", item)
+					fmt.Printf("error deleting %s, continuing...", item.Name)
 				}
 			}
 		}

@@ -2,11 +2,8 @@ package actions
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"github.com/ahstn/karetaker/pkg/domain"
-	"github.com/ahstn/karetaker/pkg/kubernetes"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic/fake"
@@ -15,20 +12,40 @@ import (
 	"time"
 )
 
-func TestAgeLogOutputAndDeletion(t *testing.T) {
-	scheme := runtime.NewScheme()
-	client := fake.NewSimpleDynamicClient(scheme,
-		newDeploymentWithTime("two-hours", time.Now().Add(-2*time.Hour)),
-		newDeploymentWithTime("eight-hours", time.Now().Add(-8*time.Hour)),
-		newDeploymentWithTime("seventy-hours", time.Now().Add(-70*time.Hour)),
-	)
+var (
+	defaultScheme = runtime.NewScheme()
+	defaultObjects = []runtime.Object {
+		newDeploymentWithTime("two-hours-deploy", time.Now().Add(-2*time.Hour)),
+		newDeploymentWithTime("eight-hours-deploy", time.Now().Add(-8*time.Hour)),
+		newDeploymentWithTime("seventy-hours-deploy", time.Now().Add(-70*time.Hour)),
+		newStatefulSetWithTime("seventy-hours-ss", time.Now().Add(-70*time.Hour)),
+		newJobWithTime("seventy-hours-job", time.Now().Add(-70*time.Hour)),
+		newServiceWithTime("seventy-hours-svc", time.Now().Add(-70*time.Hour)),
+		newConfigMapWithTime("seventy-hours-cm", time.Now().Add(-70*time.Hour)),
+		newSecretWithTime("seventy-hours-secret", time.Now().Add(-70*time.Hour)),
+	}
+)
 
+func TestAgeLogOutputAndDeletionUsingDeployments(t *testing.T) {
 	tests := []struct {
 		name      string
 		config    domain.Age
 		expected  []string
 		remaining int
 	}{
+		{
+			name: "Error is printed on invalid resource type",
+			config: domain.Age{
+				Resources: []string{"invalid-resource"},
+				Namespace: "default",
+				Age:       5 * time.Hour,
+				Allow:     []string{},
+				DryRun:    false,
+			},
+			expected: []string{
+				"Unsupported resource: invalid-resource, skipping.",
+			},
+		},
 		{
 			name: "On dry-run, objects are printed and not deleted",
 			config: domain.Age{
@@ -39,10 +56,9 @@ func TestAgeLogOutputAndDeletion(t *testing.T) {
 				DryRun:    true,
 			},
 			expected: []string{
-				fmt.Sprintf("eight-hours\t8h0m0s\tUN-CHANGED (dry-run)"),
-				fmt.Sprintf("seventy-hours\t70h0m0s\tUN-CHANGED (dry-run)"),
+				fmt.Sprintf("eight-hours-deploy\t8h0m0s\tUN-CHANGED (dry-run)"),
+				fmt.Sprintf("seventy-hours-deploy\t70h0m0s\tUN-CHANGED (dry-run)"),
 			},
-			remaining: 3,
 		},
 		{
 			name: "Objects are printed and deleted",
@@ -54,13 +70,32 @@ func TestAgeLogOutputAndDeletion(t *testing.T) {
 				DryRun:    false,
 			},
 			expected: []string{
-				fmt.Sprintf("eight-hours\t8h0m0s\tDELETED"),
-				fmt.Sprintf("seventy-hours\t70h0m0s\tDELETED"),
+				fmt.Sprintf("eight-hours-deploy\t8h0m0s\tDELETED"),
+				fmt.Sprintf("seventy-hours-deploy\t70h0m0s\tDELETED"),
 			},
-			remaining: 1,
+		},
+		{
+			name: "Deletes multiple resource types",
+			config: domain.Age{
+				Resources: []string{"deploy","svc","ss","job","configmap","secret"},
+				Namespace: "default",
+				Age:       5 * time.Hour,
+				Allow:     []string{},
+				DryRun:    false,
+			},
+			expected: []string{
+				fmt.Sprintf("eight-hours-deploy\t8h0m0s\tDELETED"),
+				fmt.Sprintf("seventy-hours-deploy\t70h0m0s\tDELETED"),
+				fmt.Sprintf("seventy-hours-job\t70h0m0s\tDELETED"),
+				fmt.Sprintf("seventy-hours-ss\t70h0m0s\tDELETED"),
+				fmt.Sprintf("seventy-hours-cm\t70h0m0s\tDELETED"),
+				fmt.Sprintf("seventy-hours-secret\t70h0m0s\tDELETED"),
+			},
 		},
 	}
 	for _, tt := range tests {
+		client := fake.NewSimpleDynamicClient(defaultScheme, defaultObjects...)
+
 		t.Run(tt.name, func(t *testing.T) {
 			o := &bytes.Buffer{}
 			err := Age(client, tt.config, o)
@@ -69,17 +104,11 @@ func TestAgeLogOutputAndDeletion(t *testing.T) {
 				return
 			}
 
-			for _, string := range tt.expected {
-				if !strings.Contains(o.String(), string) {
-					t.Errorf("Output error, \nexpected: %s \ngot: %s", string, o.String())
+			for _, expected := range tt.expected {
+				if !strings.Contains(o.String(), expected) {
+					t.Errorf("Output error, \nexpected: %s \ngot: %s", expected, o.String())
 					return
 				}
-			}
-
-			result, _ := client.Resource(kubernetes.DeploymentSchema).Namespace("default").List(context.TODO(), meta_v1.ListOptions{})
-			if len(result.Items) != tt.remaining {
-				t.Errorf("expected number of configmaps is %d, got: %d", tt.remaining, len(result.Items))
-				return
 			}
 		})
 	}
@@ -102,3 +131,25 @@ func newResourceWithTime(api, kind, name string, t time.Time) *unstructured.Unst
 func newDeploymentWithTime(name string, t time.Time) *unstructured.Unstructured {
 	return newResourceWithTime("apps/v1", "deployment", name, t)
 }
+
+func newStatefulSetWithTime(name string, t time.Time) *unstructured.Unstructured {
+	return newResourceWithTime("apps/v1", "statefulset", name, t)
+}
+
+func newServiceWithTime(name string, t time.Time) *unstructured.Unstructured {
+	return newResourceWithTime("v1", "service", name, t)
+}
+
+func newJobWithTime(name string, t time.Time) *unstructured.Unstructured {
+	return newResourceWithTime("batch/v1", "job", name, t)
+}
+
+func newConfigMapWithTime(name string, t time.Time) *unstructured.Unstructured {
+	return newResourceWithTime("v1", "configmap", name, t)
+}
+
+func newSecretWithTime(name string, t time.Time) *unstructured.Unstructured {
+	return newResourceWithTime("v1", "secret", name, t)
+}
+
+

@@ -13,7 +13,6 @@ import (
 
 var (
 	deployResource = schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}
-	configResource = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "configmaps"}
 )
 
 func TestResourcesOlderThan(t *testing.T) {
@@ -120,35 +119,6 @@ func TestResources(t *testing.T) {
 	}
 }
 
-func TestResourcesInUse(t *testing.T) {
-	scheme := runtime.NewScheme()
-	expectedConfigs := map[string]bool{"properties": true, "env-vars": true}
-	expectedSecrets := map[string]bool{"tokens": true}
-
-	client := fake.NewSimpleDynamicClient(scheme,
-		newPodWithVolumes("config-pod", "properties", "tokens"),
-		newPodWithConfigMapEnv("env-pod", "env-vars"),
-		newConfigmap("unused-config"),
-		newSecret("unused-secret"),
-	)
-
-	configs, secrets, err := ResourcesInUse(client, "default")
-	if err != nil {
-		t.Error(err)
-	}
-
-	if diff := cmp.Diff(configs, expectedConfigs); diff != "" {
-		t.Errorf("%T differ (-got, +want): %s", []string{"properties"}, diff)
-		return
-	}
-
-	if diff := cmp.Diff(secrets, expectedSecrets); diff != "" {
-		t.Errorf("%T differ (-got, +want): %s", []string{"properties"}, diff)
-		return
-	}
-
-}
-
 func TestDeleteResource(t *testing.T) {
 	scheme := runtime.NewScheme()
 
@@ -187,14 +157,6 @@ func newResource(api, kind, name string) *unstructured.Unstructured {
 	}
 }
 
-func newConfigmap(name string) *unstructured.Unstructured {
-	return newResource("v1", "configmap", name)
-}
-
-func newSecret(name string) *unstructured.Unstructured {
-	return newResource("v1", "secret", name)
-}
-
 func newResourceWithTime(api, kind, name string, t time.Time) *unstructured.Unstructured {
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -221,64 +183,4 @@ func newSecretWithTime(name string, t time.Time) *unstructured.Unstructured {
 	return newResourceWithTime("v1", "secret", name, t)
 }
 
-func newPodWithVolumes(name, config, secret string) *unstructured.Unstructured {
-	return &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"apiVersion": "v1",
-			"kind":       "pod",
-			"metadata": map[string]interface{}{
-				"namespace": "default",
-				"name":      name,
-			},
-			"spec": map[string]interface{}{
-				"containers": []interface{}{
-					map[string]interface{}{
-						"name": name,
-					},
-				},
-				"volumes": []interface{}{
-					map[string]interface{}{
-						"name": secret,
-						"secret": map[string]interface{}{
-							"secretName": secret,
-						},
-					},
-					map[string]interface{}{
-						"name": config,
-						"configMap": map[string]interface{}{
-							"name": config,
-						},
-					},
-				},
-			},
-		},
-	}
-}
 
-func newPodWithConfigMapEnv(name, config string) *unstructured.Unstructured {
-	return &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"apiVersion": "v1",
-			"kind":       "pod",
-			"metadata": map[string]interface{}{
-				"namespace":         "default",
-				"name":              name,
-				"creationTimestamp": time.Now().Format(time.RFC3339),
-			},
-			"spec": map[string]interface{}{
-				"containers": []interface{}{
-					map[string]interface{}{
-						"name": name,
-						"envFrom": []interface{}{
-							map[string]interface{}{
-								"configMapRef": map[string]interface{}{
-									"name": config,
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-}
