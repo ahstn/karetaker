@@ -29,8 +29,8 @@ func TestJobsNotRunning(t *testing.T) {
 				newRunningJob("running-job"),
 			),
 			expected: []Resource{
-				{Name: "completed-job", Kind: "jobs", Age: 0, Status: "success"},
-				{Name: "failed-job", Kind: "jobs", Age: 0, Status: "failed"},
+				{Name: "completed-job", Kind: "jobs", Age: 0, Status: Completed},
+				{Name: "failed-job", Kind: "jobs", Age: 0, Status: Failed},
 			},
 		},
 	}

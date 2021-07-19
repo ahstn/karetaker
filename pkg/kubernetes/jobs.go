@@ -16,10 +16,9 @@ func JobsNotRunning(c dynamic.Interface, n string, a []string) ([]Resource, erro
 		return nil, errors.Wrap(err, "getting resource")
 	}
 
-	now := time.Now()
 	var resource []Resource
 	for _, job := range list.Items {
-		age, err := determineObjectAge(job, now)
+		age, err := objectAge(job)
 		if err != nil {
 			return nil, err
 		}
@@ -29,25 +28,12 @@ func JobsNotRunning(c dynamic.Interface, n string, a []string) ([]Resource, erro
 			return nil, err
 		}
 
-		// TODO: Extract this, enum status and potentially cover deploy statuses also
-		var status string
-		succeeded, found, err := unstructured.NestedInt64(job.Object, "status", "succeeded")
+		status, err := objectStatus(job)
 		if err != nil {
 			return nil, err
-		} else if !found {
-			failed, found, err := unstructured.NestedInt64(job.Object, "status", "failed")
-			if err != nil {
-				return nil, err
-			} else if !found {
-				break
-			} else if failed == 1 {
-				status = "failed"
-			}
-		} else if succeeded == 1 {
-			status = "success"
 		}
 
-		if !stringContainsArrayElement(name, a) {
+		if !stringContainsArrayElement(name, a) && (status == Completed || status == Failed) {
 			resource = append(resource, Resource{
 				Name:   name,
 				Kind:   JobSchema.Resource,
@@ -61,12 +47,34 @@ func JobsNotRunning(c dynamic.Interface, n string, a []string) ([]Resource, erro
 }
 
 // TODO: Test dis
-func determineObjectAge(job unstructured.Unstructured, now time.Time) (time.Duration, error) {
+// TODO: Cover deploy status also
+func objectStatus(job unstructured.Unstructured) (Status, error) {
+	var status Status
+	succeeded, found, err := unstructured.NestedInt64(job.Object, "status", "succeeded")
+	if err != nil {
+		return Unknown, err
+	} else if succeeded == 1 {
+		status = Completed
+	} else if !found {
+		failed, _, err := unstructured.NestedInt64(job.Object, "status", "failed")
+		if err != nil {
+			return Unknown, err
+		} else if failed == 1 {
+			status = Failed
+		} else {
+			status = Unknown
+		}
+	}
+	return status, nil
+}
+
+// TODO: Test dis
+func objectAge(job unstructured.Unstructured) (time.Duration, error) {
 	t, found, err := unstructured.NestedString(job.Object, "metadata", "creationTimestamp")
 	if err != nil || !found {
 		return 0, err
 	}
 
 	creation, err := time.Parse(time.RFC3339, t)
-	return now.Sub(creation), nil
+	return time.Now().Sub(creation), nil
 }

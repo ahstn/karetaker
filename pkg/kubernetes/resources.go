@@ -15,12 +15,20 @@ import (
 // Resource is a stripped down version of a Kubernetes Resource.
 // It only holds the name and age of the resource.
 type Resource struct {
-	Name string
-	Kind string
-	Age  time.Duration
-	Status string
+	Name   string
+	Kind   string
+	Age    time.Duration
+	Status Status
 }
 
+type Status int
+
+const (
+	Running   Status = iota
+	Completed Status = iota
+	Failed    Status = iota
+	Unknown   Status = iota
+)
 
 // ResourcesOlderThan returns a list of the resources older than the duration 'd'.
 func ResourcesOlderThan(c dynamic.Interface, r schema.GroupVersionResource, n string, d time.Duration, a []string) ([]Resource, error) {
@@ -139,7 +147,7 @@ func Resources(c dynamic.Interface, r schema.GroupVersionResource, n string, a [
 		}
 	}
 
- 	return resources, nil
+	return resources, nil
 }
 
 func DeleteResource(c dynamic.Interface, r schema.GroupVersionResource, ns, n string) error {
