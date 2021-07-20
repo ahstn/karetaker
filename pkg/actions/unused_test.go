@@ -89,7 +89,7 @@ func TestUnusedLogOutputAndDeletion(t *testing.T) {
 			expected: []string{
 				fmt.Sprintf("%s\tDELETED", unused),
 				fmt.Sprintf("%s\tIN-USE", usedConfigName),
-				fmt.Sprintf("%s\tDELETED (was: 2)", failedJob),
+				fmt.Sprintf("%s\tDELETED (was: Failed)", failedJob),
 			},
 		},
 	}

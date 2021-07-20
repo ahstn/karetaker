@@ -22,13 +22,13 @@ type Resource struct {
 	Status Status
 }
 
-type Status int
+type Status string
 
 const (
-	Running   Status = iota
-	Completed Status = iota
-	Failed    Status = iota
-	Unknown   Status = iota
+	Running   Status = "Running"
+	Completed Status = "Completed"
+	Failed    Status = "Failed"
+	Unknown   Status = "Unknown"
 )
 
 // Resources returns all the existing objects for a given resource type.
