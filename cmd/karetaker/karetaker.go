@@ -34,7 +34,7 @@ func main() {
 		Register("unused").
 		SetDescription("Find resources not in use by another object").
 		AddArgument("type", "type of resource", "configmap").
-		AddFlag("age,a", "age boundary to filter on (only for certain resources)", commando.String, "24h").
+		AddFlag("age,a", "age boundary to filter on for certain resources", commando.String, "24h").
 		AddFlag("namespace,n", "kubernetes namespace", commando.String, "default").
 		AddFlag("dry-run,d", "if true, only show the resources", commando.Bool, true).
 		AddFlag("allow,A", "allow list (CSV) of name patterns to ignore (i.e. 'istio')", commando.String, "").
