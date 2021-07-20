@@ -46,35 +46,27 @@ func JobsNotRunning(c dynamic.Interface, n string, a []string) ([]Resource, erro
 	return resource, nil
 }
 
-// TODO: Test dis
 // TODO: Cover deploy status also
 func objectStatus(job unstructured.Unstructured) (Status, error) {
-	var status Status
-	succeeded, found, err := unstructured.NestedInt64(job.Object, "status", "succeeded")
+	succeeded, _, err := unstructured.NestedInt64(job.Object, "status", "succeeded")
 	if err != nil {
 		return Unknown, err
 	} else if succeeded == 1 {
-		status = Completed
-	} else if !found {
-		failed, _, err := unstructured.NestedInt64(job.Object, "status", "failed")
-		if err != nil {
-			return Unknown, err
-		} else if failed == 1 {
-			status = Failed
-		} else {
-			status = Unknown
-		}
-	}
-	return status, nil
-}
-
-// TODO: Test dis
-func objectAge(job unstructured.Unstructured) (time.Duration, error) {
-	t, found, err := unstructured.NestedString(job.Object, "metadata", "creationTimestamp")
-	if err != nil || !found {
-		return 0, err
+		return Completed, nil
 	}
 
-	creation, err := time.Parse(time.RFC3339, t)
-	return time.Now().Sub(creation), nil
+	failed, _, err := unstructured.NestedInt64(job.Object, "status", "failed")
+	if err != nil {
+		return Unknown, err
+	} else if failed == 1 {
+		return Failed, nil
+	}
+
+	running, _, err := unstructured.NestedInt64(job.Object, "status", "running")
+	if err != nil {
+		return Unknown, err
+	} else if running == 1 {
+		return Running, nil
+	}
+	return Unknown, err
 }

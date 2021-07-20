@@ -143,6 +143,40 @@ func TestDeleteResource(t *testing.T) {
 	}
 }
 
+func TestObjectAge(t *testing.T) {
+	tests := []struct {
+		name    string
+		args    unstructured.Unstructured
+		want    time.Duration
+		wantErr bool
+	}{
+		{
+			name: "Returns valid time as expected",
+			args: *newDeploymentWithTime("eight-hours", time.Now().Add(-8*time.Hour)),
+			want: 8*time.Hour,
+			wantErr: false,
+		},
+		{
+			name: "Returns zero time and error as expected",
+			args: *newResourceWithoutTimestamp("apps/v1", "deployment", "deploy"),
+			want: 0,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := objectAge(tt.args)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("objectAge() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("objectAge() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func newResource(api, kind, name string) *unstructured.Unstructured {
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -166,6 +200,19 @@ func newResourceWithTime(api, kind, name string, t time.Time) *unstructured.Unst
 				"namespace":         "default",
 				"name":              name,
 				"creationTimestamp": t.Format(time.RFC3339),
+			},
+		},
+	}
+}
+
+func newResourceWithoutTimestamp(api, kind, name string) *unstructured.Unstructured {
+	return &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": api,
+			"kind":       kind,
+			"metadata": map[string]interface{}{
+				"namespace":         "default",
+				"name":              name,
 			},
 		},
 	}

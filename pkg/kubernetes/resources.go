@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -13,7 +14,7 @@ import (
 )
 
 // Resource is a stripped down version of a Kubernetes Resource.
-// It only holds the name and age of the resource.
+// It only holds the name age and (optional) status of the resource.
 type Resource struct {
 	Name   string
 	Kind   string
@@ -59,17 +60,12 @@ func ResourcesOlderThan(c dynamic.Interface, r schema.GroupVersionResource, n st
 		return nil, errors.Wrap(err, "getting resource")
 	}
 
-	now := time.Now()
 	var resource []Resource
 	for _, deployment := range list.Items {
-		t, found, err := unstructured.NestedString(deployment.Object, "metadata", "creationTimestamp")
-		if err != nil || !found {
+		age, err := objectAge(deployment)
+		if err != nil {
 			return nil, err
 		}
-
-		creation, err := time.Parse(time.RFC3339, t)
-
-		age := now.Sub(creation)
 		if age > d {
 			name, found, err := unstructured.NestedString(deployment.Object, "metadata", "name")
 			if err != nil || !found {
@@ -89,6 +85,7 @@ func ResourcesOlderThan(c dynamic.Interface, r schema.GroupVersionResource, n st
 	return resource, nil
 }
 
+// DeleteResource removes an Object given it's passed GVR and Name
 func DeleteResource(c dynamic.Interface, r schema.GroupVersionResource, ns, n string) error {
 	deletePolicy := meta_v1.DeletePropagationForeground
 	deleteOptions := meta_v1.DeleteOptions{
@@ -96,6 +93,16 @@ func DeleteResource(c dynamic.Interface, r schema.GroupVersionResource, ns, n st
 	}
 
 	return c.Resource(r).Namespace(ns).Delete(context.TODO(), n, deleteOptions)
+}
+
+func objectAge(obj unstructured.Unstructured) (time.Duration, error) {
+	t, found, err := unstructured.NestedString(obj.Object, "metadata", "creationTimestamp")
+	if err != nil || !found {
+		return 0, fmt.Errorf("unable to parse 'creationTimestamp' %s", err)
+	}
+
+	creation, err := time.Parse(time.RFC3339, t)
+	return time.Now().Sub(creation).Round(time.Minute), nil
 }
 
 func stringContainsArrayElement(s string, t []string) bool {

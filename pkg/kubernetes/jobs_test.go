@@ -51,6 +51,51 @@ func TestJobsNotRunning(t *testing.T) {
 	}
 }
 
+func TestObjectStatus(t *testing.T) {
+	var tests = []struct {
+		name    string
+		args    unstructured.Unstructured
+		want    Status
+		wantErr bool
+	}{
+		{
+			name: "Returns 'Completed' as expected",
+			args: *newCompletedJob("job"),
+			want: Completed,
+			wantErr: false,
+		},
+		{
+			name: "Returns 'Failed' as expected",
+			args: *newFailedJob("job"),
+			want: Failed,
+			wantErr: false,
+		},
+		{
+			name: "Returns 'Running' as expected",
+			args: *newRunningJob("job"),
+			want: Running,
+			wantErr: false,
+		},
+		{
+			name: "Returns 'Unknown' as expected",
+			args: *newInvalidJob("job"),
+			want: Unknown,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := objectStatus(tt.args)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("objectStatus() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("objectStatus() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 
 func newCompletedJob(name string) *unstructured.Unstructured {
 	return newJobWithStatus(name, map[string]interface{}{
@@ -87,6 +132,20 @@ func newJobWithStatus(name string, status map[string]interface{}) *unstructured.
 						"name": name,
 					},
 				},
+			},
+		},
+	}
+}
+
+func newInvalidJob(name string) *unstructured.Unstructured {
+	return &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "batch/v1",
+			"kind":       "job",
+			"metadata": map[string]interface{}{
+				"namespace":         "default",
+				"name":              name,
+				"creationTimestamp": time.Now().Format(time.RFC3339),
 			},
 		},
 	}
