@@ -16,15 +16,18 @@ const (
 	unused         = "unused-config"
 	usedConfigName = "properties-config"
 	usedSecretName = "tokens-secret"
-	failedJob = "failed-job"
+	failedJob      = "failed-job"
+	completedJob   = "completed-job"
 )
+
 var (
-	defaultUnusedObjects = []runtime.Object {
+	defaultUnusedObjects = []runtime.Object{
 		newPodWithVolumes("config-pod", usedConfigName, usedSecretName),
 		newConfigmap(unused),
 		newConfigmap(usedConfigName),
 		newSecret(usedSecretName),
 		newFailedJob(failedJob),
+		newCompletedJobWithTime(completedJob, time.Now().Add(-1*time.Hour)),
 	}
 )
 
@@ -41,7 +44,7 @@ func TestUnusedLogOutputAndDeletion(t *testing.T) {
 				Resources: []string{"invalid-resource"},
 				Namespace: "default",
 				Allow:     []string{},
-				DryRun: false,
+				DryRun:    false,
 			},
 			expected: []string{
 				"Unsupported resource: invalid-resource, skipping.",
@@ -50,7 +53,7 @@ func TestUnusedLogOutputAndDeletion(t *testing.T) {
 		{
 			name: "On dry-run, objects are printed and not deleted",
 			config: domain.Unused{
-				Resources: []string{"configmap","job"},
+				Resources: []string{"configmap", "job"},
 				Namespace: "default",
 				Allow:     []string{},
 				DryRun:    true,
@@ -59,15 +62,29 @@ func TestUnusedLogOutputAndDeletion(t *testing.T) {
 				fmt.Sprintf("%s\tUN-CHANGED (dry-run)", unused),
 				fmt.Sprintf("%s\tIN-USE", usedConfigName),
 				fmt.Sprintf("%s\tUN-CHANGED (dry-run)", failedJob),
+				fmt.Sprintf("%s\tUN-CHANGED (dry-run)", completedJob),
+			},
+		},
+		{
+			name: "With age filter, certain objects are skipped",
+			config: domain.Unused{
+				Resources: []string{"configmap", "job"},
+				Namespace: "default",
+				Age:       24 * time.Hour,
+				Allow:     []string{},
+				DryRun:    false,
+			},
+			expected: []string{
+				fmt.Sprintf("%s\tUN-CHANGED (age)", completedJob),
 			},
 		},
 		{
 			name: "Objects are printed and deleted",
 			config: domain.Unused{
-				Resources: []string{"configmap","job"},
+				Resources: []string{"configmap", "job"},
 				Namespace: "default",
 				Allow:     []string{},
-				DryRun: false,
+				DryRun:    false,
 			},
 			expected: []string{
 				fmt.Sprintf("%s\tDELETED", unused),
@@ -159,6 +176,12 @@ func newCompletedJob(name string) *unstructured.Unstructured {
 	})
 }
 
+func newCompletedJobWithTime(name string, t time.Time) *unstructured.Unstructured {
+	return newJobWithStatusAndTime(name, map[string]interface{}{
+		"succeeded": int64(1),
+	}, t)
+}
+
 func newRunningJob(name string) *unstructured.Unstructured {
 	return newJobWithStatus(name, map[string]interface{}{
 		"running": int64(1),
@@ -180,6 +203,28 @@ func newJobWithStatus(name string, status map[string]interface{}) *unstructured.
 				"namespace":         "default",
 				"name":              name,
 				"creationTimestamp": time.Now().Format(time.RFC3339),
+			},
+			"status": status,
+			"spec": map[string]interface{}{
+				"containers": []interface{}{
+					map[string]interface{}{
+						"name": name,
+					},
+				},
+			},
+		},
+	}
+}
+
+func newJobWithStatusAndTime(name string, status map[string]interface{}, t time.Time) *unstructured.Unstructured {
+	return &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "batch/v1",
+			"kind":       "job",
+			"metadata": map[string]interface{}{
+				"namespace":         "default",
+				"name":              name,
+				"creationTimestamp": t.Format(time.RFC3339),
 			},
 			"status": status,
 			"spec": map[string]interface{}{

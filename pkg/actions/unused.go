@@ -85,7 +85,9 @@ func handleJobs(c dynamic.Interface, u domain.Unused, o io.Writer) error {
 	for _, job := range jobs {
 		if u.DryRun {
 			fmt.Fprintf(o, "%s\tUN-CHANGED (dry-run)\t\n", job.Name)
-		} else {
+		} else if u.Age != 0 && (job.Age < u.Age) {
+			fmt.Fprintf(o, "%s\tUN-CHANGED (age)\t\n", job.Name)
+		}else {
 			fmt.Fprintf(o, "%s\tDELETED (was: %v)\t\n", job.Name, job.Status)
 			err = kubernetes.DeleteResource(c, kubernetes.JobSchema, u.Namespace, job.Name)
 			if err != nil {
