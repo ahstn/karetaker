@@ -15,16 +15,12 @@ import (
 func Unused(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
 	n, _ := flags["namespace"].GetString()
 	d, _ := flags["dry-run"].GetBool()
-	a, _ := flags["allow"].GetString()
+	a, _ := flags["age"].GetString()
+	al, _ := flags["allow"].GetString()
 	t := args["type"].Value
-	allowlist = append(allowlist, strings.Split(a, ",")[:]...)
-
-	config := domain.Unused{
-		Resources: strings.Split(t, ","),
-		Namespace: n,
-		Allow:     allowlist,
-		DryRun:    d,
-	}
+	allowlist = append(allowlist, strings.Split(al, ",")[:]...)
+	
+	config, err := domain.NewUnusedConfigWithAge(t, a, n, allowlist, d)
 
 	fmt.Printf("Using Allow List of: %s\n", allowlist)
 	fmt.Println("Connecting to Kubernetes Cluster")

@@ -22,6 +22,9 @@ Each of these operations have their own logic and specific Kubernetes resources 
 ### `karetaker age`
 Target resources older than a specific age. (i.e. deploys older than 7 days)
 
+Currently supported resource types are: `configmap`, `deploy`, `job`, `secret`, `service`, `statefulset`. 
+To see supported resource type shorthand matchers, see: [Resource Shorthand Matchers](#resource-shorthand-matchers)
+
 ```
 ➜ karetaker age -h
 Find resources older than a certain age
@@ -41,12 +44,14 @@ Flags:
 Example:
     karetaker age -n default -a 48h deployment
 ```
-To ignore certain objects, see : [Allow List](#allow-list).
+To ignore certain objects, see: [Allow List](#allow-list).
 
 ### `karetaker unused`
 Attempts to find resources that are no longer used, a primary example of this would be an existing configmap that isn't being referenced by a running deployment or pod.
 
-To ignore certain objects, see : [Allow List](#allow-list).
+Currently supported resource types: `configmap`, `secret`, `job`
+
+Resource types that support the `--age` flag are: `job`
 
 ```
 ➜ karetaker unused -h
@@ -59,6 +64,7 @@ Arguments:
     type                          type of resource (default: configmap)
 
 Flags:
+    -a, --age                     age boundary to filter on for certain resources (default: 24h)
     -A, --allow                   allow list (CSV) of name patterns to ignore (i.e. 'istio')
     -d, --dry-run                 if true, only show the resources (default: false)
     -h, --help                    displays usage information of the application or a command (default: false)
@@ -66,6 +72,7 @@ Flags:
 Example:
     karetaker unused -n default secrets,configmaps
 ```
+To ignore certain objects, see: [Allow List](#allow-list).
 
 ### `karetaker duplicate`
 This commands aims to find similar or duplicate Kubernetes deployments. It's intended for finding similar Helm releases, but can be used for any deployment that has an "app name" and "instance" labels (i.e. `kubernetes.io/name` and `kubernetes.io/instance`).
@@ -103,6 +110,17 @@ app-auth-531-2      1/1     1            1           16d
 So when our app name label equals 'app' we have 6 deployments which will all have instances labels (`kuberetes.io/instance=adam`, `kubernetes.io/instance=adam2`, etc). From looking at these we can see that the April Release deployment has a "typo" duplicate that wasn't cleaned up and the engineer Adam has a release for 49 days ago that they potentially forgot about.
 
 `karetaker duplicate` is designed to make us aware of these similar deployments and delete them, if we deem them unnecessary.
+
+
+## Resource Matchers
+Much like `kubectl`, you can pass shorted versions of resource types and singular or plural types. The following is a list of the available matchers for each type:
+
+* ConfigMap: `configmap`, `configmaps`
+* Deployment: `deploy`, `deployment`, `deployments`
+* Job: `job`, `jobs`
+* Secret: `secret`, `secrets`
+* Service: `svc`, `service`, `services`
+* StatefulSet: `ss`, `statefulset`, `statefulsets`
 
 ## Allow List
 To ignore certain objects (i.e. `default-token` or `istio-ca`), all commands will support an "allow-list" as `-A or --allow`.
