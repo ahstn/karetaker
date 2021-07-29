@@ -28,7 +28,7 @@ func TestResourcesOlderThan(t *testing.T) {
 		{
 			name:     "returns deployments older than the target duration with no allow-list",
 			duration: 5 * time.Hour,
-			allow: []string{},
+			allow:    []string{},
 			client: fake.NewSimpleDynamicClient(scheme,
 				newDeploymentWithTime("two-hours", time.Now().Add(-2*time.Hour)),
 				newDeploymentWithTime("eight-hours", time.Now().Add(-8*time.Hour)),
@@ -42,7 +42,7 @@ func TestResourcesOlderThan(t *testing.T) {
 		{
 			name:     "returns deployments older than the target duration with allow-list",
 			duration: 5 * time.Hour,
-			allow: []string{"certs", "monitoring"},
+			allow:    []string{"certs", "monitoring"},
 			client: fake.NewSimpleDynamicClient(scheme,
 				newDeploymentWithTime("seventy-hours", time.Now().Add(-70*time.Hour)),
 				newDeploymentWithTime("certs-controller", time.Now().Add(-120*time.Hour)),
@@ -151,15 +151,15 @@ func TestObjectAge(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Returns valid time as expected",
-			args: *newDeploymentWithTime("eight-hours", time.Now().Add(-8*time.Hour)),
-			want: 8*time.Hour,
+			name:    "Returns valid time as expected",
+			args:    *newDeploymentWithTime("eight-hours", time.Now().Add(-8*time.Hour)),
+			want:    8 * time.Hour,
 			wantErr: false,
 		},
 		{
-			name: "Returns zero time and error as expected",
-			args: *newResourceWithoutTimestamp("apps/v1", "deployment", "deploy"),
-			want: 0,
+			name:    "Returns zero time and error as expected",
+			args:    *newResourceWithoutTimestamp("apps/v1", "deployment", "deploy"),
+			want:    0,
 			wantErr: true,
 		},
 	}
@@ -211,8 +211,8 @@ func newResourceWithoutTimestamp(api, kind, name string) *unstructured.Unstructu
 			"apiVersion": api,
 			"kind":       kind,
 			"metadata": map[string]interface{}{
-				"namespace":         "default",
-				"name":              name,
+				"namespace": "default",
+				"name":      name,
 			},
 		},
 	}
@@ -229,5 +229,3 @@ func newConfigmapWithTime(name string, t time.Time) *unstructured.Unstructured {
 func newSecretWithTime(name string, t time.Time) *unstructured.Unstructured {
 	return newResourceWithTime("v1", "secret", name, t)
 }
-
-

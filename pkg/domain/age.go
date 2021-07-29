@@ -70,4 +70,3 @@ func NewUnusedConfigWithAge(r, a, n string, allow []string, d bool) (Unused, err
 		Namespace: n,
 	}, nil
 }
-

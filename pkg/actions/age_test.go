@@ -13,8 +13,8 @@ import (
 )
 
 var (
-	defaultScheme = runtime.NewScheme()
-	defaultObjects = []runtime.Object {
+	defaultScheme  = runtime.NewScheme()
+	defaultObjects = []runtime.Object{
 		newDeploymentWithTime("two-hours-deploy", time.Now().Add(-2*time.Hour)),
 		newDeploymentWithTime("eight-hours-deploy", time.Now().Add(-8*time.Hour)),
 		newDeploymentWithTime("seventy-hours-deploy", time.Now().Add(-70*time.Hour)),
@@ -77,7 +77,7 @@ func TestAgeLogOutputAndDeletionUsingDeployments(t *testing.T) {
 		{
 			name: "Deletes multiple resource types",
 			config: domain.Age{
-				Resources: []string{"deploy","svc","ss","job","configmap","secret"},
+				Resources: []string{"deploy", "svc", "ss", "job", "configmap", "secret"},
 				Namespace: "default",
 				Age:       5 * time.Hour,
 				Allow:     []string{},
@@ -151,5 +151,3 @@ func newConfigMapWithTime(name string, t time.Time) *unstructured.Unstructured {
 func newSecretWithTime(name string, t time.Time) *unstructured.Unstructured {
 	return newResourceWithTime("v1", "secret", name, t)
 }
-
-

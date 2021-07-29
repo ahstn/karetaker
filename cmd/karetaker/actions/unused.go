@@ -19,7 +19,7 @@ func Unused(args map[string]commando.ArgValue, flags map[string]commando.FlagVal
 	al, _ := flags["allow"].GetString()
 	t := args["type"].Value
 	allowlist = append(allowlist, strings.Split(al, ",")[:]...)
-	
+
 	config, err := domain.NewUnusedConfigWithAge(t, a, n, allowlist, d)
 
 	fmt.Printf("Using Allow List of: %s\n", allowlist)

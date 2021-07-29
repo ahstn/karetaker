@@ -20,8 +20,8 @@ func TestJobsNotRunning(t *testing.T) {
 		expected []Resource
 	}{
 		{
-			name:     "Testing ConfigMaps with complete match allow-list",
-			allow:    []string{"allowed-job"},
+			name:  "Testing ConfigMaps with complete match allow-list",
+			allow: []string{"allowed-job"},
 			client: fake.NewSimpleDynamicClient(scheme,
 				newCompletedJob("completed-job"),
 				newCompletedJob("allowed-job"),
@@ -59,27 +59,27 @@ func TestObjectStatus(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Returns 'Completed' as expected",
-			args: *newCompletedJob("job"),
-			want: Completed,
+			name:    "Returns 'Completed' as expected",
+			args:    *newCompletedJob("job"),
+			want:    Completed,
 			wantErr: false,
 		},
 		{
-			name: "Returns 'Failed' as expected",
-			args: *newFailedJob("job"),
-			want: Failed,
+			name:    "Returns 'Failed' as expected",
+			args:    *newFailedJob("job"),
+			want:    Failed,
 			wantErr: false,
 		},
 		{
-			name: "Returns 'Running' as expected",
-			args: *newRunningJob("job"),
-			want: Running,
+			name:    "Returns 'Running' as expected",
+			args:    *newRunningJob("job"),
+			want:    Running,
 			wantErr: false,
 		},
 		{
-			name: "Returns 'Unknown' as expected",
-			args: *newInvalidJob("job"),
-			want: Unknown,
+			name:    "Returns 'Unknown' as expected",
+			args:    *newInvalidJob("job"),
+			want:    Unknown,
 			wantErr: false,
 		},
 	}

@@ -15,9 +15,9 @@ func Unused(c dynamic.Interface, u domain.Unused, o io.Writer) error {
 	for _, resource := range u.Resources {
 		var err error
 		switch resource {
-		case "configmap","configmaps","secret","secrets":
+		case "configmap", "configmaps", "secret", "secrets":
 			err = handleConfigSecrets(c, u, o)
-		case "job","jobs":
+		case "job", "jobs":
 			err = handleJobs(c, u, o)
 		default:
 			fmt.Fprintf(o, "Unsupported resource: %s, skipping.", resource)
@@ -87,7 +87,7 @@ func handleJobs(c dynamic.Interface, u domain.Unused, o io.Writer) error {
 			fmt.Fprintf(o, "%s\tUN-CHANGED (dry-run)\t\n", job.Name)
 		} else if u.Age != 0 && (job.Age < u.Age) {
 			fmt.Fprintf(o, "%s\tUN-CHANGED (age)\t\n", job.Name)
-		}else {
+		} else {
 			fmt.Fprintf(o, "%s\tDELETED (was: %v)\t\n", job.Name, job.Status)
 			err = kubernetes.DeleteResource(c, kubernetes.JobSchema, u.Namespace, job.Name)
 			if err != nil {

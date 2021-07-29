@@ -16,17 +16,17 @@ func Age(c dynamic.Interface, u domain.Age, o io.Writer) error {
 		var gvr schema.GroupVersionResource
 
 		switch resource {
-		case "configmap","configmaps":
+		case "configmap", "configmaps":
 			gvr = kubernetes.ConfigMapSchema
-		case "secret","secrets":
+		case "secret", "secrets":
 			gvr = kubernetes.SecretSchema
-		case "deploy","deployment","deployments":
+		case "deploy", "deployment", "deployments":
 			gvr = kubernetes.DeploymentSchema
-		case "ss","statefulset","statefulsets":
+		case "ss", "statefulset", "statefulsets":
 			gvr = kubernetes.StatefulSetSchema
-		case "svc","service","services":
+		case "svc", "service", "services":
 			gvr = kubernetes.ServiceSchema
-		case "job","jobs":
+		case "job", "jobs":
 			gvr = kubernetes.JobSchema
 		default:
 			fmt.Fprintf(o, "Unsupported resource: %s, skipping.", resource)
